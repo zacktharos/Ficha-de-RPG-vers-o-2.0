@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import ReactDOM from 'react-dom/client';
 
@@ -845,7 +846,7 @@ const Section: React.FC<SectionProps> = ({ title, children, defaultOpen = false 
             }}
         >
             <h2
-                className="text-xl font-medieval text-amber-400 p-3 cursor-pointer flex justify-between items-center"
+                className="text-lg sm:text-xl font-medieval text-amber-400 p-3 cursor-pointer flex justify-between items-center"
                 onClick={() => setIsOpen(!isOpen)}
             >
                 {title}
@@ -2373,7 +2374,7 @@ const Vitals: React.FC<VitalsProps> = ({ ficha, onBulkUpdate, pontosVantagemDisp
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
             <div className="bg-stone-800 p-3 rounded-lg">
                 <label className="text-sm text-stone-400 block">Nível</label>
-                <span className="text-3xl font-bold text-amber-400">{ficha.nivel}</span>
+                <span className="text-2xl sm:text-3xl font-bold text-amber-400">{ficha.nivel}</span>
             </div>
             <div className="bg-stone-800 p-3 rounded-lg flex flex-col justify-center">
                 <label className="text-sm text-stone-400 block">Experiência</label>
@@ -2398,8 +2399,8 @@ const Vitals: React.FC<VitalsProps> = ({ ficha, onBulkUpdate, pontosVantagemDisp
                             value={ficha.experiencia}
                             isGmMode={isGmMode}
                             onUpdate={handleGmUpdateExp}
-                            displayClass="text-3xl font-bold text-white"
-                            inputClass="w-full bg-transparent text-3xl font-bold text-white text-center appearance-none [-moz-appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                            displayClass="text-2xl sm:text-3xl font-bold text-white"
+                            inputClass="w-full bg-transparent text-2xl sm:text-3xl font-bold text-white text-center appearance-none [-moz-appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                         />
                         {!isGmMode && (
                              <button onClick={() => setIsAddingExp(true)} title="Adicionar Experiência" className="text-xl bg-green-800 hover:bg-green-700 rounded-full w-8 h-8 flex items-center justify-center flex-shrink-0">+</button>
@@ -2413,8 +2414,8 @@ const Vitals: React.FC<VitalsProps> = ({ ficha, onBulkUpdate, pontosVantagemDisp
                     value={ficha.pontosHabilidadeDisponiveis}
                     isGmMode={isGmMode}
                     onUpdate={handleGmUpdatePd}
-                    displayClass={`text-3xl font-bold ${ficha.pontosHabilidadeDisponiveis < 0 ? 'text-red-500' : 'text-white'}`}
-                    inputClass="w-full bg-transparent text-3xl font-bold text-white text-center appearance-none [-moz-appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                    displayClass={`text-2xl sm:text-3xl font-bold ${ficha.pontosHabilidadeDisponiveis < 0 ? 'text-red-500' : 'text-white'}`}
+                    inputClass="w-full bg-transparent text-2xl sm:text-3xl font-bold text-white text-center appearance-none [-moz-appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                 />
             </div>
             <div className="bg-stone-800 p-3 rounded-lg">
@@ -2423,8 +2424,8 @@ const Vitals: React.FC<VitalsProps> = ({ ficha, onBulkUpdate, pontosVantagemDisp
                     value={pontosVantagemDisponiveis}
                     isGmMode={isGmMode}
                     onUpdate={handleGmUpdatePv}
-                    displayClass={`text-3xl font-bold ${pontosVantagemDisponiveis < 0 ? 'text-red-500' : 'text-white'}`}
-                    inputClass="w-full bg-transparent text-3xl font-bold text-white text-center appearance-none [-moz-appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                    displayClass={`text-2xl sm:text-3xl font-bold ${pontosVantagemDisponiveis < 0 ? 'text-red-500' : 'text-white'}`}
+                    inputClass="w-full bg-transparent text-2xl sm:text-3xl font-bold text-white text-center appearance-none [-moz-appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                 />
             </div>
         </div>
@@ -2546,7 +2547,7 @@ const App: React.FC = () => {
 
     return (
         <div className={appClasses}>
-            <div id="character-sheet-container" className="max-w-2xl mx-auto rounded-xl shadow-2xl shadow-black/50 overflow-hidden my-4" style={{
+            <div id="character-sheet-container" className="max-w-2xl mx-auto sm:rounded-xl shadow-2xl shadow-black/50 overflow-hidden sm:my-4" style={{
                 backgroundColor: 'var(--sheet-bg-color)',
                 opacity: currentFicha.sheetOpacity / 100,
                 borderWidth: `var(--border-width)`,
@@ -2565,7 +2566,7 @@ const App: React.FC = () => {
                     onToggleGmMode={toggleGmMode}
                 />
                 
-                <main className="p-4 space-y-4">
+                <main className="p-2 sm:p-4 space-y-4">
                     <Section title="Informações Básicas" defaultOpen>
                         <textarea
                             id="descricao-personagem"
