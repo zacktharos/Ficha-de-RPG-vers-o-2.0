@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Ficha, Magia } from '../types';
+import { Ficha, Magia } from '../types.ts';
 
 interface SkillsProps {
     ficha: Ficha;

@@ -1,7 +1,7 @@
 
 import React from 'react';
-import Modal from './Modal';
-import { categoryData } from '../assets/categoryImages';
+import Modal from './Modal.tsx';
+import { categoryData } from '../assets/categoryImages.ts';
 
 interface CategoryModalProps {
     onClose: () => void;

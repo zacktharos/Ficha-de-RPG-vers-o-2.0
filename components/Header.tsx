@@ -1,6 +1,7 @@
+
 import React from 'react';
-import { Ficha } from '../types';
-import { FICHA_MATRIZ_ID } from '../constants';
+import { Ficha } from '../types.ts';
+import { FICHA_MATRIZ_ID } from '../constants.ts';
 
 interface HeaderProps {
     fichas: Record<string, Ficha>;

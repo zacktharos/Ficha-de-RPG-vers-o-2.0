@@ -1,6 +1,7 @@
+
 import React, { useState } from 'react';
-import { Ficha } from '../types';
-import { racasData, vantagensData, desvantagensData } from '../constants';
+import { Ficha } from '../types.ts';
+import { racasData, vantagensData, desvantagensData } from '../constants.ts';
 
 interface RacasPanelProps {
     ficha: Ficha;

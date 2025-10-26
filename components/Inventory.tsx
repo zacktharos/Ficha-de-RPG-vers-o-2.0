@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Ficha, InventarioItem } from '../types';
+import { Ficha, InventarioItem } from '../types.ts';
 
 interface InventoryProps {
     ficha: Ficha;

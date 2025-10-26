@@ -1,5 +1,6 @@
+
 import React from 'react';
-import { Ficha } from '../types';
+import { Ficha } from '../types.ts';
 
 interface LocomotionProps {
     ficha: Ficha;

@@ -41,7 +41,7 @@
     <div id="root"></div>
     <!-- Adicionado Babel para transpilar TSX em tempo real no navegador -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <!-- Alterado o type para "text/babel" para que o Babel processe este script -->
-    <script type="text/babel" data-type="module" src="./index.tsx"></script>
+    <!-- Alterado o type e adicionado presets para que o Babel processe o script corretamente -->
+    <script type="text/babel" data-type="module" data-presets="react,typescript" src="./index.tsx"></script>
   </body>
 </html>

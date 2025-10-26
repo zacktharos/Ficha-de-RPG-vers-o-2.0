@@ -1,6 +1,7 @@
+
 import React, { useState } from 'react';
-import { Ficha } from '../types';
-import { vantagensData, desvantagensData } from '../constants';
+import { Ficha } from '../types.ts';
+import { vantagensData, desvantagensData } from '../constants.ts';
 
 interface VantagensDesvantagensPanelProps {
     ficha: Ficha;

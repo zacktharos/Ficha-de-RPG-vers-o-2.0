@@ -1,7 +1,8 @@
+
 import { useState, useEffect, useCallback } from 'react';
-import { Ficha, DiceRoll } from '../types';
-import { RGP_FICHAS_KEY, RPG_CURRENT_FICHA_ID_KEY, FICHA_MATRIZ_ID, nivelData, vantagensData, desvantagensData, racasData } from '../constants';
-import { calcularAtributos } from '../utils/calculations';
+import { Ficha, DiceRoll } from '../types.ts';
+import { RGP_FICHAS_KEY, RPG_CURRENT_FICHA_ID_KEY, FICHA_MATRIZ_ID, nivelData, vantagensData, desvantagensData, racasData } from '../constants.ts';
+import { calcularAtributos } from '../utils/calculations.ts';
 
 const RPG_GM_MODE_KEY = 'rpgGmMode';
 

@@ -1,6 +1,7 @@
+
 import React from 'react';
-import { Ficha } from '../types';
-import EditableStat from './EditableStat';
+import { Ficha } from '../types.ts';
+import EditableStat from './EditableStat.tsx';
 
 interface CombatProps {
     ficha: Ficha;

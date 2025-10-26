@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { categoryData } from '../assets/categoryImages';
+import { categoryData } from '../assets/categoryImages.ts';
 
 interface CategoryDisplayProps {
     selectedCategoryKey: string | null;

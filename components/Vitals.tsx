@@ -1,8 +1,8 @@
 
 import React, { useState } from 'react';
-import { Ficha } from '../types';
-import EditableStat from './EditableStat';
-import { nivelData } from '../constants';
+import { Ficha } from '../types.ts';
+import EditableStat from './EditableStat.tsx';
+import { nivelData } from '../constants.ts';
 
 interface VitalsProps {
     ficha: Ficha;

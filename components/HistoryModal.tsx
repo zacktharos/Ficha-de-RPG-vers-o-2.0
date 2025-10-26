@@ -1,7 +1,7 @@
 
 import React from 'react';
-import { DiceRoll } from '../types';
-import Modal from './Modal';
+import { DiceRoll } from '../types.ts';
+import Modal from './Modal.tsx';
 
 interface HistoryModalProps {
     history: DiceRoll[];

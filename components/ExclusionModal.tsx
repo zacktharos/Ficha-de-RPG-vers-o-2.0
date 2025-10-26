@@ -1,6 +1,7 @@
+
 import React, { useState } from 'react';
-import { Ficha } from '../types';
-import Modal from './Modal';
+import { Ficha } from '../types.ts';
+import Modal from './Modal.tsx';
 
 interface ExclusionModalProps {
     ficha: Ficha;

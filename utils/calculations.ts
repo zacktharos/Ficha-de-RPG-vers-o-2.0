@@ -1,5 +1,5 @@
 
-import { Ficha } from '../types';
+import { Ficha } from '../types.ts';
 
 /**
  * Calculates all derived attributes of a character sheet based on its primary stats and equipment.

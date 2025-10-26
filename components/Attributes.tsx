@@ -1,7 +1,8 @@
+
 import React, { useState, useEffect, useMemo } from 'react';
-import { Ficha } from '../types';
-import { calcularAtributos } from '../utils/calculations';
-import EditableStat from './EditableStat';
+import { Ficha } from '../types.ts';
+import { calcularAtributos } from '../utils/calculations.ts';
+import EditableStat from './EditableStat.tsx';
 
 type EditableAttributes = Pick<Ficha, 'forca' | 'destreza' | 'agilidade' | 'constituicao' | 'inteligencia'>;
 

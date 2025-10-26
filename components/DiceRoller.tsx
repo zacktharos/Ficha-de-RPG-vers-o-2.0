@@ -1,5 +1,6 @@
+
 import React, { useState } from 'react';
-import { DiceRoll, Ficha } from '../types';
+import { DiceRoll, Ficha } from '../types.ts';
 
 interface DiceRollerProps {
     onRoll: (max: number) => DiceRoll;

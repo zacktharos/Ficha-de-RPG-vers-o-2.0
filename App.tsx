@@ -1,28 +1,28 @@
 
 import React, { useState, useCallback, useEffect } from 'react';
-import { useCharacterSheet } from './hooks/useCharacterSheet';
-import { useDynamicStyles } from './hooks/useDynamicStyles';
-import { Ficha } from './types';
-import { racasData } from './constants';
-import Header from './components/Header';
-import ResourceBars from './components/ResourceBars';
-import Attributes from './components/Attributes';
-import Combat from './components/Combat';
-import Inventory from './components/Inventory';
-import Skills from './components/Skills';
-import Vitals from './components/Vitals';
-import Actions from './components/Actions';
-import DiceRoller from './components/DiceRoller';
-import Section from './components/Section';
-import VantagensDesvantagensPanel from './components/VantagensDesvantagensPanel';
-import RacasPanel from './components/RacasPanel';
-import Modal from './components/Modal';
-import Locomotion from './components/Locomotion';
-import CustomizationModal from './components/CustomizationModal';
-import PasswordModal from './components/PasswordModal';
-import ExclusionModal from './components/ExclusionModal';
-import NotesModal from './components/NotesModal';
-import HistoryModal from './components/HistoryModal';
+import { useCharacterSheet } from './hooks/useCharacterSheet.ts';
+import { useDynamicStyles } from './hooks/useDynamicStyles.ts';
+import { Ficha } from './types.ts';
+import { racasData } from './constants.ts';
+import Header from './components/Header.tsx';
+import ResourceBars from './components/ResourceBars.tsx';
+import Attributes from './components/Attributes.tsx';
+import Combat from './components/Combat.tsx';
+import Inventory from './components/Inventory.tsx';
+import Skills from './components/Skills.tsx';
+import Vitals from './components/Vitals.tsx';
+import Actions from './components/Actions.tsx';
+import DiceRoller from './components/DiceRoller.tsx';
+import Section from './components/Section.tsx';
+import VantagensDesvantagensPanel from './components/VantagensDesvantagensPanel.tsx';
+import RacasPanel from './components/RacasPanel.tsx';
+import Modal from './components/Modal.tsx';
+import Locomotion from './components/Locomotion.tsx';
+import CustomizationModal from './components/CustomizationModal.tsx';
+import PasswordModal from './components/PasswordModal.tsx';
+import ExclusionModal from './components/ExclusionModal.tsx';
+import NotesModal from './components/NotesModal.tsx';
+import HistoryModal from './components/HistoryModal.tsx';
 
 const App: React.FC = () => {
     const {
