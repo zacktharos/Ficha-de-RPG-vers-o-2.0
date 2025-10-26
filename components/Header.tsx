@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Ficha } from '../types';
 import { FICHA_MATRIZ_ID } from '../constants';
@@ -37,7 +36,9 @@ const Header: React.FC<HeaderProps> = ({ fichas, currentFichaId, switchFicha, no
                             if (a.id === FICHA_MATRIZ_ID) return -1;
                             if (b.id === FICHA_MATRIZ_ID) return 1;
                             return a.nomeFicha.localeCompare(b.nomeFicha);
-                        }).map(f => (
+                        })
+                        // FIX: Explicitly typed the map parameter to resolve type inference issues.
+                        .map((f: Ficha) => (
                             <option key={f.id} value={f.id}>{f.nomeFicha}</option>
                         ))}
                     </select>

@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { Ficha, DiceRoll } from '../types';
 import { RGP_FICHAS_KEY, RPG_CURRENT_FICHA_ID_KEY, FICHA_MATRIZ_ID, nivelData, vantagensData, desvantagensData, racasData } from '../constants';
@@ -98,49 +97,82 @@ export const useCharacterSheet = () => {
             const fichasJSON = localStorage.getItem(RGP_FICHAS_KEY);
             if (fichasJSON) {
                 const parsedData = JSON.parse(fichasJSON);
-                
-                // Ensure parsedData is a valid, non-array object before proceeding.
                 if (typeof parsedData === 'object' && parsedData !== null && !Array.isArray(parsedData)) {
                     loadedFichas = parsedData;
                 } else {
-                    // If data is corrupt (e.g., an array, null, or primitive), start fresh.
-                    console.warn('Corrupted data in localStorage, initializing with a default sheet.');
+                    console.warn('Corrupted data in localStorage, initializing.');
                 }
             }
         } catch (error) {
-            console.error("Failed to load or parse fichas from storage, initializing with a default sheet.", error);
-            // In case of error, loadedFichas remains empty {}.
+            console.error("Failed to parse fichas from storage, initializing.", error);
         }
 
-        if (Object.keys(loadedFichas).length === 0 || !loadedFichas[FICHA_MATRIZ_ID]) {
+        if (!loadedFichas[FICHA_MATRIZ_ID]) {
             loadedFichas[FICHA_MATRIZ_ID] = createDefaultFicha(FICHA_MATRIZ_ID, "Matriz");
         }
-        
-        // Data migration: ensure all loaded sheets have the latest fields
-        const defaultFichaTemplate = createDefaultFicha('',''); 
-        Object.keys(loadedFichas).forEach(key => {
+
+        const defaultFichaTemplate = createDefaultFicha('', '');
+
+        // Sanitize and migrate every loaded ficha
+        for (const key in loadedFichas) {
             const ficha = loadedFichas[key];
 
-            // Ensure each character sheet is a valid object before migrating.
-            if (typeof ficha !== 'object' || ficha === null) {
+            // Ensure ficha is a valid object, otherwise replace it.
+            if (typeof ficha !== 'object' || ficha === null || Array.isArray(ficha)) {
                 console.warn(`Invalid data for ficha with key ${key}. Replacing with default.`);
-                loadedFichas[key] = createDefaultFicha(key, `Ficha Corrompida ${key}`);
-                return; // continue to next iteration
-            }
-            
-            // Specific migration for lockedExperiencia
-            if (typeof (ficha as any).lockedExperiencia !== 'number') {
-                (ficha as any).lockedExperiencia = ficha.experiencia || 0;
+                loadedFichas[key] = createDefaultFicha(key, (ficha as any)?.nomeFicha || `Ficha Corrompida`);
+                continue;
             }
 
-            for (const defaultKey in defaultFichaTemplate) {
-                if (ficha[defaultKey as keyof Ficha] === undefined) {
-                    (ficha as any)[defaultKey] = defaultFichaTemplate[defaultKey as keyof Ficha];
+            // Iterate over the default template to check and correct types and missing values
+            for (const prop in defaultFichaTemplate) {
+                const typedProp = prop as keyof Ficha;
+                const defaultValue = defaultFichaTemplate[typedProp];
+                const currentValue = ficha[typedProp];
+                
+                if (currentValue === undefined) {
+                    (ficha as any)[typedProp] = defaultValue;
+                } else if (typeof defaultValue === 'number' && typeof currentValue !== 'number') {
+                    (ficha as any)[typedProp] = parseFloat(currentValue as any) || 0;
+                } else if (Array.isArray(defaultValue) && !Array.isArray(currentValue)) {
+                    (ficha as any)[typedProp] = defaultValue;
                 }
             }
-        });
+            
+            // Deeper sanitization for arrays of objects
+            if (Array.isArray(ficha.inventario)) {
+                ficha.inventario = ficha.inventario.map(item => ({
+                    item: String(item?.item || ''),
+                    peso: parseFloat(item?.peso as any) || 0
+                }));
+            } else {
+                 ficha.inventario = defaultFichaTemplate.inventario;
+            }
 
+            if (Array.isArray(ficha.magiasHabilidades)) {
+                ficha.magiasHabilidades = ficha.magiasHabilidades.map(magia => ({
+                    nome: String(magia?.nome || ''),
+                    custo: parseFloat(magia?.custo as any) || 0,
+                    custoVigor: parseFloat(magia?.custoVigor as any) || 0,
+                    dano: String(magia?.dano || ''),
+                    tipo: String(magia?.tipo || ''),
+                }));
+            } else {
+                ficha.magiasHabilidades = defaultFichaTemplate.magiasHabilidades;
+            }
 
+            if (typeof ficha.lockedAtributos === 'object' && ficha.lockedAtributos !== null) {
+                 for (const attr in defaultFichaTemplate.lockedAtributos) {
+                    const typedAttr = attr as keyof typeof defaultFichaTemplate.lockedAtributos;
+                    if (typeof ficha.lockedAtributos[typedAttr] !== 'number') {
+                        (ficha.lockedAtributos as any)[typedAttr] = parseFloat((ficha.lockedAtributos as any)[typedAttr] as any) || 0;
+                    }
+                }
+            } else {
+                ficha.lockedAtributos = defaultFichaTemplate.lockedAtributos;
+            }
+        }
+        
         setFichas(loadedFichas);
 
         const savedFichaId = localStorage.getItem(RPG_CURRENT_FICHA_ID_KEY);
