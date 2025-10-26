@@ -97,29 +97,45 @@ export const useCharacterSheet = () => {
         try {
             const fichasJSON = localStorage.getItem(RGP_FICHAS_KEY);
             if (fichasJSON) {
-                loadedFichas = JSON.parse(fichasJSON);
+                const parsedData = JSON.parse(fichasJSON);
+                
+                // Ensure parsedData is a valid, non-array object before proceeding.
+                if (typeof parsedData === 'object' && parsedData !== null && !Array.isArray(parsedData)) {
+                    loadedFichas = parsedData;
+                } else {
+                    // If data is corrupt (e.g., an array, null, or primitive), start fresh.
+                    console.warn('Corrupted data in localStorage, initializing with a default sheet.');
+                }
             }
         } catch (error) {
-            console.error("Failed to load fichas from storage", error);
+            console.error("Failed to load or parse fichas from storage, initializing with a default sheet.", error);
+            // In case of error, loadedFichas remains empty {}.
         }
 
-        if (!loadedFichas[FICHA_MATRIZ_ID]) {
+        if (Object.keys(loadedFichas).length === 0 || !loadedFichas[FICHA_MATRIZ_ID]) {
             loadedFichas[FICHA_MATRIZ_ID] = createDefaultFicha(FICHA_MATRIZ_ID, "Matriz");
         }
         
         // Data migration: ensure all loaded sheets have the latest fields
+        const defaultFichaTemplate = createDefaultFicha('',''); 
         Object.keys(loadedFichas).forEach(key => {
-            const defaultFicha = createDefaultFicha('',''); 
             const ficha = loadedFichas[key];
 
+            // Ensure each character sheet is a valid object before migrating.
+            if (typeof ficha !== 'object' || ficha === null) {
+                console.warn(`Invalid data for ficha with key ${key}. Replacing with default.`);
+                loadedFichas[key] = createDefaultFicha(key, `Ficha Corrompida ${key}`);
+                return; // continue to next iteration
+            }
+            
             // Specific migration for lockedExperiencia
             if (typeof (ficha as any).lockedExperiencia !== 'number') {
-                (ficha as any).lockedExperiencia = ficha.experiencia;
+                (ficha as any).lockedExperiencia = ficha.experiencia || 0;
             }
 
-            for (const defaultKey in defaultFicha) {
+            for (const defaultKey in defaultFichaTemplate) {
                 if (ficha[defaultKey as keyof Ficha] === undefined) {
-                    (ficha as any)[defaultKey] = defaultFicha[defaultKey as keyof Ficha];
+                    (ficha as any)[defaultKey] = defaultFichaTemplate[defaultKey as keyof Ficha];
                 }
             }
         });

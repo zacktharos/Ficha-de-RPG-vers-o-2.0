@@ -32,8 +32,8 @@ const Header: React.FC<HeaderProps> = ({ fichas, currentFichaId, switchFicha, no
                         onChange={(e) => switchFicha(e.target.value)}
                         className="bg-stone-800 border border-stone-600 rounded-md p-2 focus:ring-2 focus:ring-amber-500 focus:outline-none"
                     >
-                        {/* FIX: The sort function was incorrect, causing type inference errors. It now correctly compares two elements. */}
-                        {Object.values(fichas).sort((a, b) => {
+                        {/* FIX: Explicitly typed sort parameters to resolve type inference issues. */}
+                        {Object.values(fichas).sort((a: Ficha, b: Ficha) => {
                             if (a.id === FICHA_MATRIZ_ID) return -1;
                             if (b.id === FICHA_MATRIZ_ID) return 1;
                             return a.nomeFicha.localeCompare(b.nomeFicha);
