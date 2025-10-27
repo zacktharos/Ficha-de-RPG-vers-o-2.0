@@ -77,11 +77,15 @@ interface Ficha {
     
     gmAdjustments?: Partial<Record<keyof Ficha, number>>;
 
+    // Character Image
+    characterImage: string | null;
+
     // Aesthetic properties
     theme: string;
     darkMode: boolean;
     backgroundColor: string | null;
     sheetBackgroundColor: string | null;
+    componentBackgroundColor: string | null;
     fontFamily: string;
     sheetOpacity: number;
     shadowColor: string;
@@ -95,6 +99,8 @@ interface Ficha {
     diceNumberColor: string | null;
     diceTexture: string | null;
     diceAnimation: 'padrao' | 'rapido' | 'salto';
+    textColor: string | null;
+    accentColor: string | null;
 }
 
 interface InventarioItem {
@@ -307,6 +313,8 @@ const clearDynamicStyles = (root: HTMLElement) => {
     root.style.setProperty('--border-style', '');
     root.style.setProperty('--border-width', '');
     root.style.setProperty('--sheet-shadow', '');
+    root.style.setProperty('--text-color', '');
+    root.style.setProperty('--accent-color', '');
 };
 
 const useDynamicStyles = (ficha: Ficha | null) => {
@@ -354,6 +362,10 @@ const useDynamicStyles = (ficha: Ficha | null) => {
                 root.style.setProperty('--sheet-shadow', 'transparent 0 0 0 0 inset');
             }
         }
+        
+        root.style.setProperty('--component-bg-color', ficha.componentBackgroundColor || '');
+        root.style.setProperty('--text-color', ficha.textColor || '');
+        root.style.setProperty('--accent-color', ficha.accentColor || '');
 
     }, [ficha]);
 };
@@ -389,11 +401,14 @@ const createDefaultFicha = (id: string, nomeFicha: string): Ficha => ({
     classeDescricao: '',
     anotacoes: '',
     gmAdjustments: {},
+    // Character Image
+    characterImage: null,
     // Aesthetics
     theme: 'theme-medieval',
     darkMode: false,
     backgroundColor: '#f0e6d2',
     sheetBackgroundColor: '#f0e6d2',
+    componentBackgroundColor: '#f0e6d2',
     fontFamily: "'Inter', sans-serif",
     sheetOpacity: 100,
     shadowColor: '#000000',
@@ -407,6 +422,8 @@ const createDefaultFicha = (id: string, nomeFicha: string): Ficha => ({
     diceNumberColor: '#000000',
     diceTexture: null,
     diceAnimation: 'padrao',
+    textColor: '#000000',
+    accentColor: '#f59e0b',
 });
 
 const useCharacterSheet = () => {
@@ -641,6 +658,7 @@ const useCharacterSheet = () => {
             darkMode: false, 
             backgroundColor: defaults.backgroundColor,
             sheetBackgroundColor: defaults.sheetBackgroundColor,
+            componentBackgroundColor: defaults.componentBackgroundColor,
             fontFamily: defaults.fontFamily,
             sheetOpacity: defaults.sheetOpacity,
             shadowColor: defaults.shadowColor,
@@ -654,6 +672,8 @@ const useCharacterSheet = () => {
             diceNumberColor: defaults.diceNumberColor,
             diceTexture: defaults.diceTexture,
             diceAnimation: defaults.diceAnimation,
+            textColor: defaults.textColor,
+            accentColor: defaults.accentColor,
         });
     }, [currentFichaId, updateFicha]);
     
@@ -814,10 +834,10 @@ interface ModalProps {
 const Modal: React.FC<ModalProps> = ({ title, onClose, children }) => {
     return (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-            <div className="bg-stone-800 rounded-lg shadow-xl w-full max-w-md p-6 border border-stone-600">
+            <div className="bg-stone-800 rounded-lg shadow-xl w-full max-w-md p-6 border border-stone-600" style={{ backgroundColor: 'var(--component-bg-color)' }}>
                 <div className="flex justify-between items-center mb-4">
-                    <h2 className="text-2xl font-medieval text-amber-400">{title}</h2>
-                    <button onClick={onClose} className="text-2xl text-stone-400 hover:text-white">&times;</button>
+                    <h2 className="text-2xl font-medieval">{title}</h2>
+                    <button onClick={onClose} className="text-2xl hover:opacity-75" style={{ color: 'var(--text-color)' }}>&times;</button>
                 </div>
                 <div>{children}</div>
             </div>
@@ -846,7 +866,7 @@ const Section: React.FC<SectionProps> = ({ title, children, defaultOpen = false 
             }}
         >
             <h2
-                className="text-lg sm:text-xl font-medieval text-amber-400 p-3 cursor-pointer flex justify-between items-center"
+                className="text-lg sm:text-xl font-medieval p-3 cursor-pointer flex justify-between items-center"
                 onClick={() => setIsOpen(!isOpen)}
             >
                 {title}
@@ -873,13 +893,13 @@ interface ActionsProps {
 const Actions: React.FC<ActionsProps> = ({ onResetPontos, onRecomecar, onRequestDelete }) => {
     return (
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-            <button onClick={onResetPontos} className="py-2 px-4 bg-yellow-800 hover:bg-yellow-700 rounded-md transition-colors">
+            <button onClick={onResetPontos} className="py-2 px-4 bg-yellow-800 hover:bg-yellow-700 rounded-md transition-colors text-white">
                 Reiniciar Pontos
             </button>
-            <button onClick={onRecomecar} className="py-2 px-4 bg-orange-800 hover:bg-orange-700 rounded-md transition-colors">
+            <button onClick={onRecomecar} className="py-2 px-4 bg-orange-800 hover:bg-orange-700 rounded-md transition-colors text-white">
                 Recomeçar Ficha
             </button>
-            <button onClick={onRequestDelete} className="py-2 px-4 bg-red-800 hover:bg-red-700 rounded-md transition-colors">
+            <button onClick={onRequestDelete} className="py-2 px-4 bg-red-800 hover:bg-red-700 rounded-md transition-colors text-white">
                 Excluir Ficha
             </button>
         </div>
@@ -993,30 +1013,32 @@ const Attributes: React.FC<AttributesProps> = ({ ficha, onBulkUpdate, selectedAt
     
     const primaryAttributes: (keyof EditableAttributes)[] = ['forca', 'destreza', 'agilidade', 'constituicao', 'inteligencia'];
     
+    const componentStyle = { backgroundColor: 'var(--component-bg-color)' };
+
     return (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2 bg-stone-800 p-3 rounded-lg">
+            <div className="space-y-2 bg-stone-800 p-3 rounded-lg" style={componentStyle}>
                 <div className="text-center mb-2">
-                    <h3 className="font-medieval text-lg text-amber-400">Atributos Primários</h3>
+                    <h3 className="font-medieval text-lg">Atributos Primários</h3>
                     <p className="text-sm">Pontos Disponíveis: <span className={`font-bold text-xl ${pontosDisponiveis < 0 ? 'text-red-500' : 'text-green-400'}`}>{pontosDisponiveis}</span></p>
                 </div>
                 <div className="divide-y divide-stone-700">
                     {primaryAttributes.map(attr => (
                          <div key={attr} className="flex justify-between items-center py-2">
-                            <label className="font-bold text-stone-300">{attributeLabels[attr]}</label>
+                            <label className="font-bold">{attributeLabels[attr]}</label>
                             <div className="flex items-center gap-2">
                                 {!isGmMode ? (
                                     <>
-                                        <button onClick={() => handleAttrChange(attr, -1)} disabled={displayFicha[attr] <= ficha.lockedAtributos[attr]} className="w-8 h-8 rounded-md bg-stone-700 hover:bg-stone-600 disabled:opacity-50 disabled:cursor-not-allowed">-</button>
-                                        <span className="w-10 text-center font-bold text-lg text-white">{displayFicha[attr]}</span>
-                                        <button onClick={() => handleAttrChange(attr, 1)} disabled={pontosDisponiveis <= 0} className="w-8 h-8 rounded-md bg-stone-700 hover:bg-stone-600 disabled:opacity-50 disabled:cursor-not-allowed">+</button>
+                                        <button onClick={() => handleAttrChange(attr, -1)} disabled={displayFicha[attr] <= ficha.lockedAtributos[attr]} className="w-8 h-8 rounded-md bg-stone-700 hover:bg-stone-600 disabled:opacity-50 disabled:cursor-not-allowed text-white">-</button>
+                                        <span className="w-10 text-center font-bold text-lg">{displayFicha[attr]}</span>
+                                        <button onClick={() => handleAttrChange(attr, 1)} disabled={pontosDisponiveis <= 0} className="w-8 h-8 rounded-md bg-stone-700 hover:bg-stone-600 disabled:opacity-50 disabled:cursor-not-allowed text-white">+</button>
                                     </>
                                 ) : (
                                     <EditableStat
                                         value={displayFicha[attr]}
                                         isGmMode={isGmMode}
                                         onUpdate={(val) => onBulkUpdate({ [attr]: val })}
-                                        displayClass="font-bold text-lg text-white"
+                                        displayClass="font-bold text-lg"
                                         inputClass="w-20 text-center bg-stone-800 border border-stone-600 rounded-md"
                                     />
                                 )}
@@ -1026,8 +1048,8 @@ const Attributes: React.FC<AttributesProps> = ({ ficha, onBulkUpdate, selectedAt
                 </div>
                 {tempAttrs && (
                     <div className="flex gap-2 pt-4">
-                        <button onClick={handleCancel} className="flex-1 py-2 bg-stone-600 hover:bg-stone-500 rounded-md">Cancelar</button>
-                        <button onClick={handleSave} className="flex-1 py-2 bg-green-700 hover:bg-green-600 rounded-md">Salvar</button>
+                        <button onClick={handleCancel} className="flex-1 py-2 bg-stone-600 hover:bg-stone-500 rounded-md text-white">Cancelar</button>
+                        <button onClick={handleSave} className="flex-1 py-2 bg-green-700 hover:bg-green-600 rounded-md text-white">Salvar</button>
                     </div>
                 )}
             </div>
@@ -1036,19 +1058,20 @@ const Attributes: React.FC<AttributesProps> = ({ ficha, onBulkUpdate, selectedAt
                      const attrKey = key as keyof Ficha;
                      const isSelected = selectedAttribute === attrKey;
                      return (
-                         <div key={key} className="flex justify-between items-center py-2 px-3 bg-stone-900/50 rounded-md">
-                            <label className="font-bold text-amber-400">{label}</label>
+                         <div key={key} className="flex justify-between items-center py-2 px-3 bg-stone-900/50 rounded-md" style={componentStyle}>
+                            <label className="font-bold" style={{ color: 'var(--accent-color)' }}>{label}</label>
                             <div className="flex items-center gap-2">
                                 <EditableStat 
                                     value={displayFicha[attrKey] as number}
                                     isGmMode={isGmMode}
                                     onUpdate={(val) => handleGmUpdateDerived(attrKey, val)}
-                                    displayClass="font-bold text-lg text-white"
+                                    displayClass="font-bold text-lg"
                                     inputClass="w-20 text-center bg-stone-800 border border-stone-600 rounded-md"
                                 />
                                 <button
                                     onClick={() => setSelectedAttribute(isSelected ? null : key)}
-                                    className={`transition-all ${isSelected ? 'text-yellow-400 scale-125' : 'text-stone-500 hover:text-yellow-500'}`}
+                                    className={`transition-all ${isSelected ? 'scale-125' : 'opacity-50 hover:opacity-100'}`}
+                                    style={{ color: isSelected ? 'var(--accent-color)' : 'var(--text-color)'}}
                                     title={`Rolar com ${label}`}
                                 >
                                     <DiceIcon className="w-5 h-5" />
@@ -1085,20 +1108,23 @@ const WeaponInput: React.FC<{
     const handleNumberChange = (key: keyof Ficha, value: number) => {
         onUpdate(key, Math.max(0, value));
     };
+    
+    const componentStyle = { backgroundColor: 'var(--component-bg-color)' };
 
     return (
         <div className="space-y-2">
-            <label className="block font-bold text-stone-300">Mão {hand}</label>
+            <label className="block font-bold">{`Mão ${hand}`}</label>
             <input
                 type="text"
                 placeholder="Nome da Arma"
                 value={ficha[nameKey] as string}
                 onChange={(e) => onUpdate(nameKey, e.target.value)}
                 className="w-full p-2 bg-stone-800 border border-stone-600 rounded-md"
+                style={componentStyle}
             />
             <div className="grid grid-cols-2 gap-2">
                 <div>
-                    <label className="text-sm text-amber-400 block text-center">Ataque</label>
+                    <label className="text-sm block text-center" style={{ color: 'var(--accent-color)' }}>Ataque</label>
                     {isGmMode ? (
                         <EditableStat
                             value={ficha[ataqueKey] as number}
@@ -1108,14 +1134,14 @@ const WeaponInput: React.FC<{
                         />
                     ) : (
                         <div className="flex items-center justify-center gap-1 mt-1">
-                            <button onClick={() => handleNumberChange(ataqueKey, (ficha[ataqueKey] as number) - 1)} className="w-7 h-7 rounded-md bg-stone-700 hover:bg-stone-600">-</button>
-                            <span className="w-10 text-center font-bold text-lg text-white">{ficha[ataqueKey] as number}</span>
-                            <button onClick={() => handleNumberChange(ataqueKey, (ficha[ataqueKey] as number) + 1)} className="w-7 h-7 rounded-md bg-stone-700 hover:bg-stone-600">+</button>
+                            <button onClick={() => handleNumberChange(ataqueKey, (ficha[ataqueKey] as number) - 1)} className="w-7 h-7 rounded-md bg-stone-700 hover:bg-stone-600 text-white">-</button>
+                            <span className="w-10 text-center font-bold text-lg">{ficha[ataqueKey] as number}</span>
+                            <button onClick={() => handleNumberChange(ataqueKey, (ficha[ataqueKey] as number) + 1)} className="w-7 h-7 rounded-md bg-stone-700 hover:bg-stone-600 text-white">+</button>
                         </div>
                     )}
                 </div>
                 <div>
-                    <label className="text-sm text-amber-400 block text-center">Ataque Mágico</label>
+                    <label className="text-sm block text-center" style={{ color: 'var(--accent-color)' }}>Ataque Mágico</label>
                      {isGmMode ? (
                         <EditableStat
                             value={ficha[ataqueMagicoKey] as number}
@@ -1125,9 +1151,9 @@ const WeaponInput: React.FC<{
                         />
                     ) : (
                          <div className="flex items-center justify-center gap-1 mt-1">
-                            <button onClick={() => handleNumberChange(ataqueMagicoKey, (ficha[ataqueMagicoKey] as number) - 1)} className="w-7 h-7 rounded-md bg-stone-700 hover:bg-stone-600">-</button>
-                            <span className="w-10 text-center font-bold text-lg text-white">{ficha[ataqueMagicoKey] as number}</span>
-                            <button onClick={() => handleNumberChange(ataqueMagicoKey, (ficha[ataqueMagicoKey] as number) + 1)} className="w-7 h-7 rounded-md bg-stone-700 hover:bg-stone-600">+</button>
+                            <button onClick={() => handleNumberChange(ataqueMagicoKey, (ficha[ataqueMagicoKey] as number) - 1)} className="w-7 h-7 rounded-md bg-stone-700 hover:bg-stone-600 text-white">-</button>
+                            <span className="w-10 text-center font-bold text-lg">{ficha[ataqueMagicoKey] as number}</span>
+                            <button onClick={() => handleNumberChange(ataqueMagicoKey, (ficha[ataqueMagicoKey] as number) + 1)} className="w-7 h-7 rounded-md bg-stone-700 hover:bg-stone-600 text-white">+</button>
                         </div>
                     )}
                 </div>
@@ -1163,10 +1189,10 @@ const fileToBase64 = (file: File): Promise<string> => {
 };
 
 type Aesthetics = Pick<Ficha,
-    'theme' | 'backgroundColor' | 'sheetBackgroundColor' | 'fontFamily' |
+    'theme' | 'backgroundColor' | 'sheetBackgroundColor' | 'componentBackgroundColor' | 'fontFamily' |
     'sheetOpacity' | 'shadowColor' | 'shadowIntensity' | 'backgroundImage' | 'backgroundSize' |
     'borderColor' | 'borderStyle' | 'borderWidth' | 'diceColor' | 'diceNumberColor' |
-    'diceTexture' | 'diceAnimation'
+    'diceTexture' | 'diceAnimation' | 'textColor' | 'accentColor'
 >;
 
 const CustomizationModal: React.FC<CustomizationModalProps> = ({ ficha, onClose, onUpdate, onReset }) => {
@@ -1174,6 +1200,7 @@ const CustomizationModal: React.FC<CustomizationModalProps> = ({ ficha, onClose,
         theme: ficha.theme,
         backgroundColor: ficha.backgroundColor,
         sheetBackgroundColor: ficha.sheetBackgroundColor,
+        componentBackgroundColor: ficha.componentBackgroundColor,
         fontFamily: ficha.fontFamily,
         sheetOpacity: ficha.sheetOpacity,
         shadowColor: ficha.shadowColor,
@@ -1187,6 +1214,8 @@ const CustomizationModal: React.FC<CustomizationModalProps> = ({ ficha, onClose,
         diceNumberColor: ficha.diceNumberColor,
         diceTexture: ficha.diceTexture,
         diceAnimation: ficha.diceAnimation,
+        textColor: ficha.textColor,
+        accentColor: ficha.accentColor,
     });
     
     const [showResetConfirm, setShowResetConfirm] = useState(false);
@@ -1219,20 +1248,32 @@ const CustomizationModal: React.FC<CustomizationModalProps> = ({ ficha, onClose,
                 <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-2">
                     
                     <fieldset className="border border-stone-600 p-3 rounded-md">
-                        <legend className="px-2 font-medieval text-amber-400">Aparência</legend>
+                        <legend className="px-2 font-medieval">Aparência</legend>
                         <div className="grid grid-cols-2 gap-4">
                             <div>
+                                <label className="text-sm">Cor do Texto/Números</label>
+                                <input type="color" value={ficha.textColor || '#000000'} onChange={e => handleUpdate('textColor', e.target.value)} className="w-full h-8 p-0 border-none rounded bg-stone-700" />
+                            </div>
+                            <div>
+                                <label className="text-sm">Cor de Destaque</label>
+                                <input type="color" value={ficha.accentColor || '#f59e0b'} onChange={e => handleUpdate('accentColor', e.target.value)} className="w-full h-8 p-0 border-none rounded bg-stone-700" />
+                            </div>
+                            <div>
                                 <label className="text-sm">Fundo da Página</label>
-                                <input type="color" value={ficha.backgroundColor || '#121212'} onChange={e => handleUpdate('backgroundColor', e.target.value)} className="w-full h-8 p-0 border-none rounded bg-stone-700" />
+                                <input type="color" value={ficha.backgroundColor || '#f0e6d2'} onChange={e => handleUpdate('backgroundColor', e.target.value)} className="w-full h-8 p-0 border-none rounded bg-stone-700" />
                             </div>
                              <div>
                                 <label className="text-sm">Fundo da Ficha</label>
-                                <input type="color" value={ficha.sheetBackgroundColor || '#1e1e1e'} onChange={e => handleUpdate('sheetBackgroundColor', e.target.value)} className="w-full h-8 p-0 border-none rounded bg-stone-700" />
+                                <input type="color" value={ficha.sheetBackgroundColor || '#f0e6d2'} onChange={e => handleUpdate('sheetBackgroundColor', e.target.value)} className="w-full h-8 p-0 border-none rounded bg-stone-700" />
                             </div>
+                        </div>
+                        <div className="mt-2">
+                            <label className="text-sm">Fundo dos Componentes</label>
+                            <input type="color" value={ficha.componentBackgroundColor || '#f0e6d2'} onChange={e => handleUpdate('componentBackgroundColor', e.target.value)} className="w-full h-8 p-0 border-none rounded bg-stone-700" />
                         </div>
                          <div className="mt-2">
                             <label className="text-sm">Fonte</label>
-                            <select value={ficha.fontFamily} onChange={e => handleUpdate('fontFamily', e.target.value)} className="w-full p-2 bg-stone-700 rounded">
+                            <select value={ficha.fontFamily} onChange={e => handleUpdate('fontFamily', e.target.value)} className="w-full p-2 bg-stone-700 rounded text-white" style={{ color: 'var(--text-color)'}}>
                                 <option value="'Inter', sans-serif">Padrão</option>
                                 <option value="'MedievalSharp', serif">Medieval</option>
                                 <option value="'Orbitron', sans-serif">Futurista</option>
@@ -1241,7 +1282,7 @@ const CustomizationModal: React.FC<CustomizationModalProps> = ({ ficha, onClose,
                     </fieldset>
                     
                     <fieldset className="border border-stone-600 p-3 rounded-md">
-                        <legend className="px-2 font-medieval text-amber-400">Opacidade e Sombra</legend>
+                        <legend className="px-2 font-medieval">Opacidade e Sombra</legend>
                          <div>
                             <label className="text-sm">Opacidade da Ficha ({ficha.sheetOpacity}%)</label>
                             <input type="range" min="10" max="100" value={ficha.sheetOpacity} onChange={e => handleUpdate('sheetOpacity', parseInt(e.target.value))} className="w-full" />
@@ -1253,26 +1294,26 @@ const CustomizationModal: React.FC<CustomizationModalProps> = ({ ficha, onClose,
                     </fieldset>
 
                     <fieldset className="border border-stone-600 p-3 rounded-md">
-                         <legend className="px-2 font-medieval text-amber-400">Imagem de Fundo (Página)</legend>
+                         <legend className="px-2 font-medieval">Imagem de Fundo (Página)</legend>
                          <input type="file" accept="image/*" onChange={e => handleFileChange(e, 'backgroundImage')} className="w-full text-sm file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-amber-800 file:text-amber-50 hover:file:bg-amber-700" />
                          {ficha.backgroundImage && <button onClick={() => handleUpdate('backgroundImage', null)} className="text-xs text-red-400 mt-1">Remover Imagem</button>}
                     </fieldset>
                     
                     <fieldset className="border border-stone-600 p-3 rounded-md">
-                        <legend className="px-2 font-medieval text-amber-400">Dado</legend>
+                        <legend className="px-2 font-medieval">Dado</legend>
                          <div className="grid grid-cols-2 gap-4">
                             <div>
                                 <label className="text-sm">Cor do Fundo</label>
-                                <input type="color" value={ficha.diceColor || '#a0522d'} onChange={e => handleUpdate('diceColor', e.target.value)} className="w-full h-8 p-0 border-none rounded bg-stone-700" />
+                                <input type="color" value={ficha.diceColor || '#f0e6d2'} onChange={e => handleUpdate('diceColor', e.target.value)} className="w-full h-8 p-0 border-none rounded bg-stone-700" />
                             </div>
                              <div>
                                 <label className="text-sm">Cor do Número</label>
-                                <input type="color" value={ficha.diceNumberColor || '#ffffff'} onChange={e => handleUpdate('diceNumberColor', e.target.value)} className="w-full h-8 p-0 border-none rounded bg-stone-700" />
+                                <input type="color" value={ficha.diceNumberColor || '#000000'} onChange={e => handleUpdate('diceNumberColor', e.target.value)} className="w-full h-8 p-0 border-none rounded bg-stone-700" />
                             </div>
                         </div>
                         <div className="mt-2">
                             <label className="text-sm">Animação</label>
-                            <select value={ficha.diceAnimation} onChange={e => handleUpdate('diceAnimation', e.target.value as Ficha['diceAnimation'])} className="w-full p-2 bg-stone-700 rounded">
+                            <select value={ficha.diceAnimation} onChange={e => handleUpdate('diceAnimation', e.target.value as Ficha['diceAnimation'])} className="w-full p-2 bg-stone-700 rounded" style={{ color: 'var(--text-color)'}}>
                                 <option value="padrao">Padrão</option>
                                 <option value="rapido">Rápido</option>
                                 <option value="salto">Salto</option>
@@ -1280,19 +1321,19 @@ const CustomizationModal: React.FC<CustomizationModalProps> = ({ ficha, onClose,
                         </div>
                     </fieldset>
                     <div className="grid grid-cols-2 gap-2 pt-4 border-t border-stone-700">
-                        <button onClick={() => setShowResetConfirm(true)} className="w-full py-2 bg-red-800 hover:bg-red-700 rounded-md col-span-2">Reiniciar Estética</button>
-                        <button onClick={handleCancel} className="w-full py-2 bg-stone-600 hover:bg-stone-500 rounded-md">Cancelar</button>
-                        <button onClick={onClose} className="w-full py-2 bg-amber-700 hover:bg-amber-600 rounded-md">Salvar</button>
+                        <button onClick={() => setShowResetConfirm(true)} className="w-full py-2 bg-red-800 hover:bg-red-700 rounded-md col-span-2 text-white">Reiniciar Estética</button>
+                        <button onClick={handleCancel} className="w-full py-2 bg-stone-600 hover:bg-stone-500 rounded-md text-white">Cancelar</button>
+                        <button onClick={onClose} className="w-full py-2 bg-amber-700 hover:bg-amber-600 rounded-md text-white">Salvar</button>
                     </div>
                 </div>
             </Modal>
             {showResetConfirm && (
                 <Modal title="Confirmar Reset" onClose={() => setShowResetConfirm(false)}>
                     <p>Tem certeza que deseja reiniciar toda a estética para o padrão medieval?</p>
-                    <p className="text-sm text-stone-400 mt-1">Seus dados de personagem não serão afetados.</p>
+                    <p className="text-sm opacity-70 mt-1">Seus dados de personagem não serão afetados.</p>
                     <div className="mt-4 flex justify-end gap-2">
-                        <button onClick={() => setShowResetConfirm(false)} className="px-4 py-2 bg-stone-600 rounded">Não</button>
-                        <button onClick={handleConfirmReset} className="px-4 py-2 bg-red-700 rounded">Sim, Reiniciar</button>
+                        <button onClick={() => setShowResetConfirm(false)} className="px-4 py-2 bg-stone-600 rounded text-white">Não</button>
+                        <button onClick={handleConfirmReset} className="px-4 py-2 bg-red-700 rounded text-white">Sim, Reiniciar</button>
                     </div>
                 </Modal>
             )}
@@ -1361,7 +1402,8 @@ const DiceRoller: React.FC<DiceRollerProps> = ({ onRoll, selectedAttribute, setS
         return (
             <button 
                 onClick={() => setIsPanelOpen(true)}
-                className="fixed bottom-4 left-1/2 -translate-x-1/2 z-30 w-14 h-14 bg-stone-800 border-2 border-amber-500 rounded-full shadow-lg flex items-center justify-center text-amber-400 hover:bg-stone-700 transition-all"
+                className="fixed bottom-4 left-1/2 -translate-x-1/2 z-30 w-14 h-14 bg-stone-800 border-2 rounded-full shadow-lg flex items-center justify-center hover:bg-stone-700 transition-all"
+                style={{ borderColor: 'var(--accent-color)', color: 'var(--accent-color)' }}
                 title="Rolar Dados"
             >
                 <DiceIcon className="w-8 h-8" />
@@ -1378,16 +1420,16 @@ const DiceRoller: React.FC<DiceRollerProps> = ({ onRoll, selectedAttribute, setS
     };
 
     return (
-        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-40 bg-stone-900/90 backdrop-blur-md p-3 rounded-lg shadow-2xl border border-stone-700 text-white w-64 flex flex-col gap-3">
+        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-40 bg-stone-900/90 backdrop-blur-md p-3 rounded-lg shadow-2xl border border-stone-700 w-64 flex flex-col gap-3">
             <div className="flex justify-between items-center">
-                <h3 className="font-medieval text-amber-400">Rolagem</h3>
-                <button onClick={() => setIsPanelOpen(false)} className="text-2xl text-stone-400 hover:text-white">&times;</button>
+                <h3 className="font-medieval">Rolagem</h3>
+                <button onClick={() => setIsPanelOpen(false)} className="text-2xl opacity-70 hover:opacity-100">&times;</button>
             </div>
             
             <div className="max-h-40 overflow-y-auto space-y-2 pr-2 border-y border-stone-700 py-2">
                 {Object.entries(diceRollerAttributeGroups).map(([groupName, attrs]) => (
                     <div key={groupName}>
-                        <h4 className="text-xs font-bold text-amber-500 mb-1">{groupName}</h4>
+                        <h4 className="text-xs font-bold mb-1" style={{ color: 'var(--accent-color)' }}>{groupName}</h4>
                         {attrs.map(attr => {
                             const isSelected = selectedAttribute === attr;
                             return (
@@ -1406,7 +1448,7 @@ const DiceRoller: React.FC<DiceRollerProps> = ({ onRoll, selectedAttribute, setS
                     <button 
                         key={d}
                         onClick={() => setDiceMax(d)}
-                        className={`w-10 h-10 text-sm rounded ${diceMax === d ? 'bg-amber-600' : 'bg-stone-700 hover:bg-stone-600'}`}
+                        className={`w-10 h-10 text-sm rounded text-white ${diceMax === d ? 'bg-amber-600' : 'bg-stone-700 hover:bg-stone-600'}`}
                     >
                         D{d}
                     </button>
@@ -1424,12 +1466,12 @@ const DiceRoller: React.FC<DiceRollerProps> = ({ onRoll, selectedAttribute, setS
             
             {selectedAttribute && (
                  <div className="text-xs text-center -mt-2">
-                    Com <span className="capitalize text-amber-300">{diceRollerAttributeLabels[selectedAttribute] || selectedAttribute}</span> (+{getAttributeValue()})
+                    Com <span className="capitalize" style={{ color: 'var(--accent-color)' }}>{diceRollerAttributeLabels[selectedAttribute] || selectedAttribute}</span> (+{getAttributeValue()})
                 </div>
             )}
             
             {lastRoll && !isRolling && (
-                <div className="text-xs text-center text-stone-300">
+                <div className="text-xs text-center opacity-80">
                     <p>D{diceMax}: {lastRoll.result}
                     {lastRoll.bonus > 0 && ` + ${lastRoll.bonus}`}
                     </p>
@@ -1473,18 +1515,19 @@ const ExclusionModal: React.FC<ExclusionModalProps> = ({ ficha, onClose, onConfi
     };
 
     const hasItems = ficha.vantagens.length > 0 || ficha.desvantagens.length > 0 || ficha.racaSelecionada;
+    const componentStyle = { backgroundColor: 'var(--component-bg-color)' };
 
     return (
         <Modal title="Excluir Itens da Ficha" onClose={onClose}>
             <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
-                {!hasItems && <p className="text-stone-400">O personagem não possui vantagens, desvantagens ou raça para excluir.</p>}
+                {!hasItems && <p className="opacity-70">O personagem não possui vantagens, desvantagens ou raça para excluir.</p>}
                 
                 {ficha.vantagens.length > 0 && (
                     <fieldset className="border border-stone-600 p-3 rounded-md">
-                        <legend className="px-2 font-medieval text-amber-400">Vantagens</legend>
+                        <legend className="px-2 font-medieval">Vantagens</legend>
                         <div className="space-y-2">
                             {ficha.vantagens.map(v => (
-                                <label key={v} htmlFor={`v-${v}`} className="flex items-center gap-3 p-2 bg-stone-900/50 rounded cursor-pointer hover:bg-stone-700">
+                                <label key={v} htmlFor={`v-${v}`} className="flex items-center gap-3 p-2 bg-stone-900/50 rounded cursor-pointer hover:bg-stone-700" style={componentStyle}>
                                     <input
                                         type="checkbox"
                                         id={`v-${v}`}
@@ -1504,7 +1547,7 @@ const ExclusionModal: React.FC<ExclusionModalProps> = ({ ficha, onClose, onConfi
                         <legend className="px-2 font-medieval text-red-400">Desvantagens</legend>
                         <div className="space-y-2">
                             {ficha.desvantagens.map(d => (
-                                <label key={d} htmlFor={`d-${d}`} className="flex items-center gap-3 p-2 bg-stone-900/50 rounded cursor-pointer hover:bg-stone-700">
+                                <label key={d} htmlFor={`d-${d}`} className="flex items-center gap-3 p-2 bg-stone-900/50 rounded cursor-pointer hover:bg-stone-700" style={componentStyle}>
                                     <input
                                         type="checkbox"
                                         id={`d-${d}`}
@@ -1522,7 +1565,7 @@ const ExclusionModal: React.FC<ExclusionModalProps> = ({ ficha, onClose, onConfi
                 {ficha.racaSelecionada && (
                     <fieldset className="border border-stone-600 p-3 rounded-md">
                         <legend className="px-2 font-medieval text-sky-400">Raça</legend>
-                        <label htmlFor="raca" className="flex items-center gap-3 p-2 bg-stone-900/50 rounded cursor-pointer hover:bg-stone-700">
+                        <label htmlFor="raca" className="flex items-center gap-3 p-2 bg-stone-900/50 rounded cursor-pointer hover:bg-stone-700" style={componentStyle}>
                             <input
                                 type="checkbox"
                                 id="raca"
@@ -1537,8 +1580,8 @@ const ExclusionModal: React.FC<ExclusionModalProps> = ({ ficha, onClose, onConfi
 
             </div>
             <div className="mt-6 flex justify-end gap-2">
-                <button onClick={onClose} className="px-4 py-2 bg-stone-600 rounded">Cancelar</button>
-                <button onClick={handleConfirm} disabled={!hasItems} className="px-4 py-2 bg-red-700 rounded disabled:bg-stone-500 disabled:cursor-not-allowed">Confirmar Exclusão</button>
+                <button onClick={onClose} className="px-4 py-2 bg-stone-600 rounded text-white">Cancelar</button>
+                <button onClick={handleConfirm} disabled={!hasItems} className="px-4 py-2 bg-red-700 rounded disabled:bg-stone-500 disabled:cursor-not-allowed text-white">Confirmar Exclusão</button>
             </div>
         </Modal>
     );
@@ -1557,6 +1600,7 @@ interface HeaderProps {
 }
 
 const Header: React.FC<HeaderProps> = ({ fichas, currentFichaId, switchFicha, nomePersonagem, handleUpdate, onNewFicha, isGmMode, onToggleGmMode }) => {
+    const componentStyle = { backgroundColor: 'var(--component-bg-color)', color: 'var(--text-color)' };
     return (
         <header className="bg-stone-900 p-4 border-b border-stone-700">
             <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
@@ -1566,13 +1610,15 @@ const Header: React.FC<HeaderProps> = ({ fichas, currentFichaId, switchFicha, no
                     placeholder="Nome do Personagem"
                     value={nomePersonagem}
                     onChange={(e) => handleUpdate('nomePersonagem', e.target.value)}
-                    className="w-full sm:w-auto text-2xl sm:text-3xl font-medieval bg-transparent text-center sm:text-left text-amber-300 focus:outline-none focus:ring-2 focus:ring-amber-500 rounded-md px-2 py-1"
+                    className="w-full sm:w-auto text-2xl sm:text-3xl font-medieval bg-transparent text-center sm:text-left focus:outline-none focus:ring-2 focus:ring-amber-500 rounded-md px-2 py-1"
+                    style={{ color: 'var(--accent-color)' }}
                 />
                 <div className="flex items-center gap-2">
                      <select
                         value={currentFichaId}
                         onChange={(e) => switchFicha(e.target.value)}
                         className="bg-stone-800 border border-stone-600 rounded-md p-2 focus:ring-2 focus:ring-amber-500 focus:outline-none"
+                        style={componentStyle}
                     >
                         {Object.values(fichas).sort((a: Ficha, b: Ficha) => {
                             if (a.id === FICHA_MATRIZ_ID) return -1;
@@ -1611,34 +1657,35 @@ interface HistoryModalProps {
 }
 
 const HistoryModal: React.FC<HistoryModalProps> = ({ history, onRequestClear, onClose }) => {
+    const componentStyle = { backgroundColor: 'var(--component-bg-color)' };
     return (
         <Modal title="Histórico de Rolagens" onClose={onClose}>
             <div className="max-h-[60vh] overflow-y-auto space-y-2 pr-2 mb-4">
                 {history.length > 0 ? (
                     history.map(roll => (
-                        <div key={roll.id} className="bg-stone-800 p-2 rounded-md text-sm">
-                            <p className="font-bold text-white">Total: {roll.total}</p>
-                            <p className="text-stone-400">
+                        <div key={roll.id} className="bg-stone-800 p-2 rounded-md text-sm" style={componentStyle}>
+                            <p className="font-bold">Total: {roll.total}</p>
+                            <p className="opacity-80">
                                 Rolagem ({roll.type}): {roll.result}
                                 {roll.attribute && ` + ${roll.bonus} (${roll.attribute})`}
                             </p>
-                            <p className="text-xs text-stone-500 text-right">{roll.timestamp}</p>
+                            <p className="text-xs opacity-60 text-right">{roll.timestamp}</p>
                         </div>
                     ))
                 ) : (
-                    <p className="text-stone-400">Nenhuma rolagem registrada.</p>
+                    <p className="opacity-70">Nenhuma rolagem registrada.</p>
                 )}
             </div>
             <div className="flex gap-2 mt-4">
                     <button
                     onClick={onRequestClear}
-                    className="flex-1 py-2 px-4 bg-red-800 hover:bg-red-700 rounded-md transition"
+                    className="flex-1 py-2 px-4 bg-red-800 hover:bg-red-700 rounded-md transition text-white"
                 >
                     Limpar
                 </button>
                 <button
                     onClick={onClose}
-                    className="flex-1 py-2 px-4 bg-amber-800 hover:bg-amber-700 rounded-md transition"
+                    className="flex-1 py-2 px-4 bg-amber-800 hover:bg-amber-700 rounded-md transition text-white"
                 >
                     Fechar
                 </button>
@@ -1680,13 +1727,14 @@ const Inventory: React.FC<InventoryProps> = ({ ficha, onUpdate }) => {
         onUpdate('inventario', newInventory);
     }
 
-    const pesoColor = ficha.pesoTotal > ficha.capacidadeCarga ? 'text-red-500' : 'text-stone-300';
+    const pesoColor = ficha.pesoTotal > ficha.capacidadeCarga ? 'text-red-500' : 'var(--text-color)';
+    const componentStyle = { backgroundColor: 'var(--component-bg-color)' };
 
     return (
         <div>
             <div className="flex justify-between items-center mb-2">
-                <h3 className="font-medieval text-lg text-amber-400">Inventário</h3>
-                <span className={`text-sm font-mono ${pesoColor}`}>
+                <h3 className="font-medieval text-lg">Inventário</h3>
+                <span className={`text-sm font-mono`} style={{ color: pesoColor }}>
                     {ficha.pesoTotal.toFixed(1)} / {ficha.capacidadeCarga} kg
                 </span>
             </div>
@@ -1699,6 +1747,7 @@ const Inventory: React.FC<InventoryProps> = ({ ficha, onUpdate }) => {
                             value={item.item}
                             onChange={(e) => handleItemChange(index, 'item', e.target.value)}
                             className="flex-grow p-2 bg-stone-800 border border-stone-600 rounded-md"
+                            style={componentStyle}
                         />
                         <input
                             type="number"
@@ -1706,12 +1755,13 @@ const Inventory: React.FC<InventoryProps> = ({ ficha, onUpdate }) => {
                             onChange={(e) => handleItemChange(index, 'peso', e.target.value)}
                             className="w-20 p-2 bg-stone-800 border border-stone-600 rounded-md text-center"
                             title="Peso em kg"
+                            style={componentStyle}
                         />
                         <button onClick={() => removeItemSlot(index)} className="w-8 h-8 rounded-md bg-red-800 hover:bg-red-700 text-white flex-shrink-0">-</button>
                     </div>
                 ))}
             </div>
-            <button onClick={addItemSlot} className="mt-2 w-full py-1 bg-stone-700 hover:bg-stone-600 rounded-md transition-colors text-sm">Adicionar Item</button>
+            <button onClick={addItemSlot} className="mt-2 w-full py-1 bg-stone-700 hover:bg-stone-600 rounded-md transition-colors text-sm text-white">Adicionar Item</button>
         </div>
     );
 };
@@ -1738,20 +1788,23 @@ const LocomotionStat: React.FC<{
         setSelectedAttribute(isSelected ? null : attrKey);
     };
 
+    const componentStyle = { backgroundColor: 'var(--component-bg-color)' };
+
     return (
-        <div className="flex justify-between items-center py-2 px-3 bg-stone-900/50 rounded-md">
-            <label className="font-bold text-stone-300 flex items-center gap-2">
+        <div className="flex justify-between items-center py-2 px-3 bg-stone-900/50 rounded-md" style={componentStyle}>
+            <label className="font-bold flex items-center gap-2">
                 <span>{icon}</span>
                 {label}
             </label>
             <div className="flex items-center gap-2">
-                <span className="font-bold text-lg text-white">
+                <span className="font-bold text-lg">
                     {value}
-                    <span className="text-sm text-stone-400 ml-1">{unit}</span>
+                    <span className="text-sm opacity-70 ml-1">{unit}</span>
                 </span>
                 <button
                     onClick={toggleSelection}
-                    className={`transition-all ${isSelected ? 'text-yellow-400 scale-125' : 'text-stone-500 hover:text-yellow-500'}`}
+                    className={`transition-all ${isSelected ? 'scale-125' : 'opacity-50 hover:opacity-100'}`}
+                    style={{ color: isSelected ? 'var(--accent-color)' : 'var(--text-color)'}}
                     title={`Rolar com ${label}`}
                 >
                     <DiceIcon className="w-5 h-5" />
@@ -1808,13 +1861,14 @@ const NotesModal: React.FC<NotesModalProps> = ({ notes, onUpdate, onClose }) => 
              <textarea
                 value={notes}
                 onChange={(e) => onUpdate(e.target.value)}
-                className="w-full h-64 p-2 bg-stone-700 border border-stone-600 rounded-md resize-none text-stone-100 focus:ring-amber-500 focus:border-amber-500"
+                className="w-full h-64 p-2 bg-stone-700 border border-stone-600 rounded-md resize-none focus:ring-amber-500 focus:border-amber-500"
                 placeholder="Suas anotações aqui..."
+                style={{ color: 'var(--text-color)'}}
             />
             <div className="flex justify-end mt-4">
                  <button
                     onClick={onClose}
-                    className="py-2 px-6 bg-amber-800 hover:bg-amber-700 rounded-md transition"
+                    className="py-2 px-6 bg-amber-800 hover:bg-amber-700 rounded-md transition text-white"
                 >
                     Fechar
                 </button>
@@ -1863,19 +1917,20 @@ const PasswordModal: React.FC<PasswordModalProps> = ({ isOpen, onClose, onSucces
 
     return (
         <Modal title={title} onClose={onClose}>
-            <p className="mb-2 text-stone-300">Por favor, insira a senha para continuar.</p>
+            <p className="mb-2">Por favor, insira a senha para continuar.</p>
             <input
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 onKeyPress={handleKeyPress}
-                className="w-full p-2 border rounded bg-stone-700 border-stone-600 text-white focus:ring-amber-500 focus:border-amber-500"
+                className="w-full p-2 border rounded bg-stone-700 border-stone-600 focus:ring-amber-500 focus:border-amber-500"
+                style={{ color: 'var(--text-color)' }}
                 autoFocus
             />
             {error && <p className="text-red-500 text-sm mt-2">{error}</p>}
             <div className="mt-4 flex justify-end gap-2">
-                <button onClick={onClose} className="px-4 py-2 bg-stone-600 rounded">Cancelar</button>
-                <button onClick={handleConfirm} className="px-4 py-2 bg-amber-700 rounded">Confirmar</button>
+                <button onClick={onClose} className="px-4 py-2 bg-stone-600 rounded text-white">Cancelar</button>
+                <button onClick={handleConfirm} className="px-4 py-2 bg-amber-700 rounded text-white">Confirmar</button>
             </div>
         </Modal>
     );
@@ -1930,12 +1985,14 @@ const RacasPanel: React.FC<RacasPanelProps> = ({ ficha, pontosVantagemDisponivei
         onUpdate('racaSelecionada', tempRaca);
         onClose();
     };
+    
+    const componentStyle = { backgroundColor: 'var(--component-bg-color)' };
 
     return (
         <div className="fixed inset-0 bg-black/80 z-40 flex flex-col p-4">
             <div className="bg-stone-900 rounded-lg p-4 flex-grow flex flex-col border border-stone-700 relative">
-                 <button onClick={onClose} className="absolute top-2 right-2 text-2xl text-stone-400 hover:text-white z-10">&times;</button>
-                <h2 className="text-3xl font-medieval text-amber-400 text-center">Raças</h2>
+                 <button onClick={onClose} className="absolute top-2 right-2 text-2xl opacity-70 hover:opacity-100 z-10">&times;</button>
+                <h2 className="text-3xl font-medieval text-center">Raças</h2>
                 <p className="text-center mb-4">Pontos Restantes Após Seleção: <span className={`font-bold text-lg ${phRestante < 0 ? 'text-red-500' : 'text-green-400'}`}>{phRestante}</span></p>
 
                 <div className="flex-grow overflow-y-auto space-y-3 pr-2">
@@ -1944,10 +2001,10 @@ const RacasPanel: React.FC<RacasPanelProps> = ({ ficha, pontosVantagemDisponivei
                         const isSaved = ficha.racaSelecionada === raca.nome;
                         
                         return (
-                         <div key={raca.nome} onClick={() => handleSelectRaca(raca.nome, raca.custo)} className={`p-3 rounded transition-colors border-2 ${isSaved ? 'border-amber-700 bg-amber-900/70 cursor-not-allowed' : (isSelected ? 'border-amber-500 bg-amber-900/50 cursor-pointer' : 'border-transparent bg-stone-800 hover:bg-stone-700 cursor-pointer')}`}>
-                            <h3 className="font-medieval text-lg text-amber-300">{raca.nome} ({raca.custo} PH)</h3>
-                            <p className="text-sm text-stone-300 mb-2">{raca.descricao}</p>
-                            <ul className="list-disc list-inside text-xs text-stone-400 space-y-1">
+                         <div key={raca.nome} onClick={() => handleSelectRaca(raca.nome, raca.custo)} className={`p-3 rounded transition-colors border-2 ${isSaved ? 'border-amber-700 bg-amber-900/70 cursor-not-allowed' : (isSelected ? 'border-amber-500 bg-amber-900/50 cursor-pointer' : 'border-transparent bg-stone-800 hover:bg-stone-700 cursor-pointer')}`} style={isSaved ? {} : (isSelected ? {} : componentStyle)}>
+                            <h3 className="font-medieval text-lg" style={{ color: 'var(--accent-color)' }}>{raca.nome} ({raca.custo} PH)</h3>
+                            <p className="text-sm mb-2">{raca.descricao}</p>
+                            <ul className="list-disc list-inside text-xs opacity-70 space-y-1">
                                 {raca.vantagens.map(v => <li key={v}>{v}</li>)}
                             </ul>
                         </div>
@@ -1955,8 +2012,8 @@ const RacasPanel: React.FC<RacasPanelProps> = ({ ficha, pontosVantagemDisponivei
                 </div>
 
                 <div className="flex gap-2 mt-4 pt-4 border-t border-stone-700">
-                    <button onClick={onClose} className="flex-1 py-2 px-4 bg-stone-700 hover:bg-stone-600 rounded-md transition">Cancelar</button>
-                    <button onClick={handleSave} className="flex-1 py-2 px-4 bg-amber-700 hover:bg-amber-600 rounded-md transition">Salvar</button>
+                    <button onClick={onClose} className="flex-1 py-2 px-4 bg-stone-700 hover:bg-stone-600 rounded-md transition text-white">Cancelar</button>
+                    <button onClick={handleSave} className="flex-1 py-2 px-4 bg-amber-700 hover:bg-amber-600 rounded-md transition text-white">Salvar</button>
                 </div>
             </div>
         </div>
@@ -1990,11 +2047,13 @@ const ResourceBar: React.FC<{
         const adjustment = newValue - baseTotal;
         onGmUpdate(totalKey, adjustment);
     };
+    
+    const componentStyle = { backgroundColor: 'var(--component-bg-color)' };
 
     return (
-        <div className="bg-stone-900/50 p-3 rounded-lg">
+        <div className="bg-stone-900/50 p-3 rounded-lg" style={componentStyle}>
             <div className="flex justify-between items-center mb-1 text-sm">
-                <span className="font-bold text-white">{icon} {label}</span>
+                <span className="font-bold">{icon} {label}</span>
                 <div className="font-mono flex items-center gap-1">
                     <span>{current} /</span>
                     <EditableStat
@@ -2013,16 +2072,16 @@ const ResourceBar: React.FC<{
                 ></div>
             </div>
              <div className="flex items-center justify-center mt-2 gap-2">
-                <button onClick={() => onCurrentChange(Math.max(0, current - 1))} className="w-8 h-8 rounded-full bg-stone-700 hover:bg-stone-600">-</button>
+                <button onClick={() => onCurrentChange(Math.max(0, current - 1))} className="w-8 h-8 rounded-full bg-stone-700 hover:bg-stone-600 text-white">-</button>
                  <input
                     type="number"
                     value={current}
                     onChange={(e) => onCurrentChange(Math.max(0, Math.min(total, parseInt(e.target.value) || 0)))}
                     className="w-16 text-center bg-stone-800 border border-stone-600 rounded-md"
                 />
-                <button onClick={() => onCurrentChange(Math.min(total, current + 1))} className="w-8 h-8 rounded-full bg-stone-700 hover:bg-stone-600">+</button>
+                <button onClick={() => onCurrentChange(Math.min(total, current + 1))} className="w-8 h-8 rounded-full bg-stone-700 hover:bg-stone-600 text-white">+</button>
             </div>
-            <div className="text-center text-xs text-stone-400 mt-2">
+            <div className="text-center text-xs opacity-70 mt-2">
                 Regeneração: {regeneration}/turno
             </div>
         </div>
@@ -2140,19 +2199,21 @@ const Skills: React.FC<SkillsProps> = ({ ficha, onUpdate }) => {
         });
     }
 
+    const componentStyle = { backgroundColor: 'var(--component-bg-color)' };
+
     return (
         <div>
-            <h3 className="font-medieval text-lg text-amber-400 mb-2">Magias e Habilidades</h3>
+            <h3 className="font-medieval text-lg mb-2">Magias e Habilidades</h3>
             <div className="space-y-3 max-h-72 overflow-y-auto pr-2">
                 {ficha.magiasHabilidades.map((skill, index) => (
-                    <div key={index} className="bg-stone-800 p-3 rounded-lg border border-stone-700">
+                    <div key={index} className="bg-stone-800 p-3 rounded-lg border border-stone-700" style={componentStyle}>
                         <div className="flex items-center gap-2 mb-2">
                              <input
                                 type="text"
                                 placeholder="Nome da Habilidade"
                                 value={skill.nome}
                                 onChange={(e) => handleSkillChange(index, 'nome', e.target.value)}
-                                className="flex-grow p-2 bg-stone-700 border border-stone-600 rounded-md text-white font-bold"
+                                className="flex-grow p-2 bg-stone-700 border border-stone-600 rounded-md font-bold"
                             />
                             <button onClick={() => removeSkillSlot(index)} className="w-8 h-8 rounded-md bg-red-800 hover:bg-red-700 text-white flex-shrink-0">-</button>
                         </div>
@@ -2186,6 +2247,7 @@ const Skills: React.FC<SkillsProps> = ({ ficha, onUpdate }) => {
                                 value={skill.tipo}
                                 onChange={(e) => handleSkillChange(index, 'tipo', e.target.value)}
                                 className="p-2 bg-stone-700 border border-stone-600 rounded-md"
+                                style={{ color: 'var(--text-color)' }}
                             >
                                 <option value="">Tipo...</option>
                                 <option value="dano">Dano</option>
@@ -2194,12 +2256,12 @@ const Skills: React.FC<SkillsProps> = ({ ficha, onUpdate }) => {
                                 <option value="debuff">Debuff</option>
                                 <option value="utilidade">Utilidade</option>
                             </select>
-                             <button onClick={() => handleCast(skill)} className="p-2 bg-amber-700 rounded-md hover:bg-amber-600 text-xs">Lançar</button>
+                             <button onClick={() => handleCast(skill)} className="p-2 bg-amber-700 rounded-md hover:bg-amber-600 text-xs text-white">Lançar</button>
                         </div>
                     </div>
                 ))}
             </div>
-            <button onClick={addSkillSlot} className="mt-2 w-full py-1 bg-stone-700 hover:bg-stone-600 rounded-md transition-colors text-sm">Adicionar Habilidade</button>
+            <button onClick={addSkillSlot} className="mt-2 w-full py-1 bg-stone-700 hover:bg-stone-600 rounded-md transition-colors text-sm text-white">Adicionar Habilidade</button>
         </div>
     );
 };
@@ -2280,24 +2342,26 @@ const VantagensDesvantagensPanel: React.FC<VantagensDesvantagensPanelProps> = ({
         });
         onClose();
     };
+    
+    const componentStyle = { backgroundColor: 'var(--component-bg-color)' };
 
     return (
         <div className="fixed inset-0 bg-black/80 z-40 flex flex-col p-4">
             <div className="bg-stone-900 rounded-lg p-4 flex-grow flex flex-col border border-stone-700">
-                <h2 className="text-3xl font-medieval text-amber-400 text-center">Vantagens e Desvantagens</h2>
+                <h2 className="text-3xl font-medieval text-center">Vantagens e Desvantagens</h2>
                 <p className="text-center mb-4">Pontos Restantes: <span className="font-bold text-lg text-green-400">{phRestante}</span></p>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 flex-grow overflow-y-auto">
                     <div className="space-y-2">
-                        <h3 className="text-xl font-medieval text-amber-500">Vantagens</h3>
+                        <h3 className="text-xl font-medieval">Vantagens</h3>
                         <div className="space-y-1 max-h-96 overflow-y-auto pr-2">
                             {vantagensData.map(v => {
                                 const isSelected = tempVantagens.includes(v.nome);
                                 const isSaved = ficha.vantagens.includes(v.nome);
                                 return (
                                 <div key={v.nome} onClick={() => toggleVantagem(v.nome, v.custo)} 
-                                className={`p-2 rounded transition-colors text-sm ${isSaved ? 'bg-amber-900/70 cursor-not-allowed' : (isSelected ? 'bg-green-800/50 cursor-pointer' : 'bg-stone-800 hover:bg-stone-700 cursor-pointer')}`}>
-                                    <strong>{v.nome}</strong> ({v.custo} PH) <p className="text-xs text-stone-400">{v.descricao}</p>
+                                className={`p-2 rounded transition-colors text-sm ${isSaved ? 'bg-amber-900/70 cursor-not-allowed' : (isSelected ? 'bg-green-800/50 cursor-pointer' : 'bg-stone-800 hover:bg-stone-700 cursor-pointer')}`} style={isSaved ? {} : (isSelected ? {} : componentStyle)}>
+                                    <strong>{v.nome}</strong> ({v.custo} PH) <p className="text-xs opacity-70">{v.descricao}</p>
                                 </div>
                             )})}
                         </div>
@@ -2309,8 +2373,8 @@ const VantagensDesvantagensPanel: React.FC<VantagensDesvantagensPanelProps> = ({
                                 const isSelected = tempDesvantagens.includes(d.nome);
                                 const isSaved = ficha.desvantagens.includes(d.nome);
                                 return (
-                                <div key={d.nome} onClick={() => toggleDesvantagem(d.nome)} className={`p-2 rounded transition-colors text-sm ${isSaved ? 'bg-amber-900/70 cursor-not-allowed' : (isSelected ? 'bg-red-800/50 cursor-pointer' : 'bg-stone-800 hover:bg-stone-700 cursor-pointer')}`}>
-                                    <strong>{d.nome}</strong> (+{d.ganho} PH) <p className="text-xs text-stone-400">{d.descricao}</p>
+                                <div key={d.nome} onClick={() => toggleDesvantagem(d.nome)} className={`p-2 rounded transition-colors text-sm ${isSaved ? 'bg-amber-900/70 cursor-not-allowed' : (isSelected ? 'bg-red-800/50 cursor-pointer' : 'bg-stone-800 hover:bg-stone-700 cursor-pointer')}`} style={isSaved ? {} : (isSelected ? {} : componentStyle)}>
+                                    <strong>{d.nome}</strong> (+{d.ganho} PH) <p className="text-xs opacity-70">{d.descricao}</p>
                                 </div>
                             )})}
                         </div>
@@ -2318,8 +2382,8 @@ const VantagensDesvantagensPanel: React.FC<VantagensDesvantagensPanelProps> = ({
                 </div>
 
                 <div className="flex gap-2 mt-4 pt-4 border-t border-stone-700">
-                    <button onClick={onClose} className="flex-1 py-2 px-4 bg-stone-700 hover:bg-stone-600 rounded-md transition">Cancelar</button>
-                    <button onClick={handleSave} className="flex-1 py-2 px-4 bg-amber-700 hover:bg-amber-600 rounded-md transition">Salvar</button>
+                    <button onClick={onClose} className="flex-1 py-2 px-4 bg-stone-700 hover:bg-stone-600 rounded-md transition text-white">Cancelar</button>
+                    <button onClick={handleSave} className="flex-1 py-2 px-4 bg-amber-700 hover:bg-amber-600 rounded-md transition text-white">Salvar</button>
                 </div>
             </div>
         </div>
@@ -2370,14 +2434,16 @@ const Vitals: React.FC<VitalsProps> = ({ ficha, onBulkUpdate, pontosVantagemDisp
         onGmUpdate('pontosVantagemTotais', adjustment);
     };
 
+    const componentStyle = { backgroundColor: 'var(--component-bg-color)' };
+
     return (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
-            <div className="bg-stone-800 p-3 rounded-lg">
-                <label className="text-sm text-stone-400 block">Nível</label>
-                <span className="text-2xl sm:text-3xl font-bold text-amber-400">{ficha.nivel}</span>
+            <div className="bg-stone-800 p-3 rounded-lg" style={componentStyle}>
+                <label className="text-sm opacity-70 block">Nível</label>
+                <span className="text-2xl sm:text-3xl font-bold" style={{ color: 'var(--accent-color)' }}>{ficha.nivel}</span>
             </div>
-            <div className="bg-stone-800 p-3 rounded-lg flex flex-col justify-center">
-                <label className="text-sm text-stone-400 block">Experiência</label>
+            <div className="bg-stone-800 p-3 rounded-lg flex flex-col justify-center" style={componentStyle}>
+                <label className="text-sm opacity-70 block">Experiência</label>
                 {isAddingExp ? (
                     <>
                         <input
@@ -2385,12 +2451,12 @@ const Vitals: React.FC<VitalsProps> = ({ ficha, onBulkUpdate, pontosVantagemDisp
                             value={expToAdd}
                             onChange={e => setExpToAdd(e.target.value)}
                             placeholder="Adicionar EXP"
-                            className="w-full bg-stone-700 text-xl font-bold text-white text-center rounded-md p-1 appearance-none [-moz-appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                            className="w-full bg-stone-700 text-xl font-bold text-center rounded-md p-1 appearance-none [-moz-appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                             autoFocus
                         />
                         <div className="flex gap-2 justify-center mt-2">
-                            <button onClick={() => { setIsAddingExp(false); setExpToAdd(''); }} className="px-3 py-1 bg-stone-600 hover:bg-stone-500 text-xs rounded">Cancelar</button>
-                            <button onClick={handleAddExp} className="px-3 py-1 bg-green-700 hover:bg-green-600 text-xs rounded">Salvar</button>
+                            <button onClick={() => { setIsAddingExp(false); setExpToAdd(''); }} className="px-3 py-1 bg-stone-600 hover:bg-stone-500 text-xs rounded text-white">Cancelar</button>
+                            <button onClick={handleAddExp} className="px-3 py-1 bg-green-700 hover:bg-green-600 text-xs rounded text-white">Salvar</button>
                         </div>
                     </>
                 ) : (
@@ -2399,38 +2465,105 @@ const Vitals: React.FC<VitalsProps> = ({ ficha, onBulkUpdate, pontosVantagemDisp
                             value={ficha.experiencia}
                             isGmMode={isGmMode}
                             onUpdate={handleGmUpdateExp}
-                            displayClass="text-2xl sm:text-3xl font-bold text-white"
-                            inputClass="w-full bg-transparent text-2xl sm:text-3xl font-bold text-white text-center appearance-none [-moz-appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                            displayClass="text-2xl sm:text-3xl font-bold"
+                            inputClass="w-full bg-transparent text-2xl sm:text-3xl font-bold text-center appearance-none [-moz-appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                         />
                         {!isGmMode && (
-                             <button onClick={() => setIsAddingExp(true)} title="Adicionar Experiência" className="text-xl bg-green-800 hover:bg-green-700 rounded-full w-8 h-8 flex items-center justify-center flex-shrink-0">+</button>
+                             <button onClick={() => setIsAddingExp(true)} title="Adicionar Experiência" className="text-xl bg-green-800 hover:bg-green-700 rounded-full w-8 h-8 flex items-center justify-center flex-shrink-0 text-white">+</button>
                         )}
                     </div>
                 )}
             </div>
-            <div className="bg-stone-800 p-3 rounded-lg">
-                <label className="text-sm text-stone-400 block">PD Disponíveis</label>
+            <div className="bg-stone-800 p-3 rounded-lg" style={componentStyle}>
+                <label className="text-sm opacity-70 block">PD Disponíveis</label>
                 <EditableStat
                     value={ficha.pontosHabilidadeDisponiveis}
                     isGmMode={isGmMode}
                     onUpdate={handleGmUpdatePd}
-                    displayClass={`text-2xl sm:text-3xl font-bold ${ficha.pontosHabilidadeDisponiveis < 0 ? 'text-red-500' : 'text-white'}`}
-                    inputClass="w-full bg-transparent text-2xl sm:text-3xl font-bold text-white text-center appearance-none [-moz-appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                    displayClass={`text-2xl sm:text-3xl font-bold ${ficha.pontosHabilidadeDisponiveis < 0 ? 'text-red-500' : ''}`}
+                    inputClass="w-full bg-transparent text-2xl sm:text-3xl font-bold text-center appearance-none [-moz-appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                 />
             </div>
-            <div className="bg-stone-800 p-3 rounded-lg">
-                <label className="text-sm text-stone-400 block">PV Disponíveis</label>
+            <div className="bg-stone-800 p-3 rounded-lg" style={componentStyle}>
+                <label className="text-sm opacity-70 block">PV Disponíveis</label>
                 <EditableStat
                     value={pontosVantagemDisponiveis}
                     isGmMode={isGmMode}
                     onUpdate={handleGmUpdatePv}
-                    displayClass={`text-2xl sm:text-3xl font-bold ${pontosVantagemDisponiveis < 0 ? 'text-red-500' : 'text-white'}`}
-                    inputClass="w-full bg-transparent text-2xl sm:text-3xl font-bold text-white text-center appearance-none [-moz-appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                    displayClass={`text-2xl sm:text-3xl font-bold ${pontosVantagemDisponiveis < 0 ? 'text-red-500' : ''}`}
+                    inputClass="w-full bg-transparent text-2xl sm:text-3xl font-bold text-center appearance-none [-moz-appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                 />
             </div>
         </div>
     );
 };
+
+// --- CharacterImage.tsx ---
+interface CharacterImageProps {
+    image: string | null;
+    onUpdate: (image: string | null) => void;
+}
+
+const CharacterImage: React.FC<CharacterImageProps> = ({ image, onUpdate }) => {
+    const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+    const handleImageClick = () => {
+        fileInputRef.current?.click();
+    };
+
+    const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                onUpdate(reader.result as string);
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+
+    const handleRemoveImage = (e: React.MouseEvent) => {
+        e.stopPropagation(); // Prevent opening the file dialog
+        onUpdate(null);
+    };
+    
+    const componentStyle = { backgroundColor: 'var(--component-bg-color)' };
+
+    return (
+        <div
+            onClick={handleImageClick}
+            className="w-32 h-40 flex-shrink-0 rounded-lg bg-stone-800 border-2 border-dashed border-stone-600 flex flex-col items-center justify-center text-center p-2 cursor-pointer hover:bg-stone-700 transition-colors relative group"
+            title="Alterar imagem do personagem"
+            style={componentStyle}
+        >
+            <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleFileChange}
+                accept="image/*"
+                className="hidden"
+            />
+            {image ? (
+                <>
+                    <img src={image} alt="Personagem" className="w-full h-full object-cover rounded-md" />
+                    <button
+                        onClick={handleRemoveImage}
+                        className="absolute top-1 right-1 bg-red-700/80 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity"
+                        title="Remover Imagem"
+                    >
+                        X
+                    </button>
+                </>
+            ) : (
+                <div className="opacity-70 text-sm">
+                    <span className="text-3xl">🖼️</span>
+                    <p>Adicionar Imagem</p>
+                </div>
+            )}
+        </div>
+    );
+};
+
 
 // ==========================================================================================
 // Conteúdo de: App.tsx
@@ -2528,11 +2661,12 @@ const App: React.FC = () => {
                                 value={newFichaName}
                                 onChange={(e) => setNewFichaName(e.target.value)}
                                 placeholder="Nome da Ficha"
-                                className="w-full p-2 border rounded bg-stone-700 border-stone-600 text-white"
+                                className="w-full p-2 border rounded bg-stone-700 border-stone-600"
+                                style={{ color: 'var(--text-color)' }}
                             />
                             <div className="mt-4 flex justify-end gap-2">
-                                <button onClick={() => setNewFichaModalOpen(false)} className="px-4 py-2 bg-stone-600 rounded">Cancelar</button>
-                                <button onClick={handleCreateFicha} className="px-4 py-2 bg-amber-700 rounded">Criar</button>
+                                <button onClick={() => setNewFichaModalOpen(false)} className="px-4 py-2 bg-stone-600 rounded text-white">Cancelar</button>
+                                <button onClick={handleCreateFicha} className="px-4 py-2 bg-amber-700 rounded text-white">Criar</button>
                             </div>
                         </Modal>
                     )}
@@ -2544,6 +2678,7 @@ const App: React.FC = () => {
     const selectedRacaData = currentFicha.racaSelecionada ? racasData.find(r => r.nome === currentFicha.racaSelecionada) : null;
     
     const appClasses = `${currentFicha.darkMode ? 'dark-mode' : 'light-mode'} ${currentFicha.theme}`;
+    const componentStyle = { backgroundColor: 'var(--component-bg-color)' };
 
     return (
         <div className={appClasses}>
@@ -2568,13 +2703,20 @@ const App: React.FC = () => {
                 
                 <main className="p-2 sm:p-4 space-y-4">
                     <Section title="Informações Básicas" defaultOpen>
-                        <textarea
-                            id="descricao-personagem"
-                            placeholder="Descrição do seu personagem"
-                            value={currentFicha.descricaoPersonagem}
-                            onChange={(e) => handleUpdate('descricaoPersonagem', e.target.value)}
-                            className="w-full p-2 bg-stone-800 border border-stone-600 rounded-md h-24 resize-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
-                        />
+                        <div className="flex flex-col sm:flex-row gap-4 items-center">
+                            <textarea
+                                id="descricao-personagem"
+                                placeholder="Descrição do seu personagem"
+                                value={currentFicha.descricaoPersonagem}
+                                onChange={(e) => handleUpdate('descricaoPersonagem', e.target.value)}
+                                className="w-full flex-grow p-2 bg-stone-800 border border-stone-600 rounded-md h-40 resize-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+                                style={componentStyle}
+                            />
+                            <CharacterImage
+                                image={currentFicha.characterImage}
+                                onUpdate={(img) => handleUpdate('characterImage', img)}
+                            />
+                        </div>
                     </Section>
 
                     <Section title="Recursos">
@@ -2618,32 +2760,32 @@ const App: React.FC = () => {
                     <Section title="Vantagens e Desvantagens">
                         <div className="space-y-4">
                             <div>
-                                <h3 className="font-bold text-amber-500">Vantagens</h3>
-                                <div className="p-2 bg-stone-800 rounded-md min-h-[4rem] space-y-1">
+                                <h3 className="font-bold" style={{ color: 'var(--accent-color)' }}>Vantagens</h3>
+                                <div className="p-2 bg-stone-800 rounded-md min-h-[4rem] space-y-1" style={componentStyle}>
                                     {currentFicha.vantagens.length > 0 ? (
                                         currentFicha.vantagens.map(v => 
-                                            <div key={v} className="text-sm text-stone-300 bg-stone-900/50 p-1 rounded">
+                                            <div key={v} className="text-sm bg-stone-900/50 p-1 rounded" style={componentStyle}>
                                                 <span>{v}</span>
                                             </div>
                                         )
-                                    ) : <p className="text-sm text-stone-500 italic">Nenhuma vantagem selecionada.</p>}
+                                    ) : <p className="text-sm opacity-70 italic">Nenhuma vantagem selecionada.</p>}
                                 </div>
                             </div>
                             <div>
                                 <h3 className="font-bold text-red-500">Desvantagens</h3>
-                                <div className="p-2 bg-stone-800 rounded-md min-h-[4rem] space-y-1">
+                                <div className="p-2 bg-stone-800 rounded-md min-h-[4rem] space-y-1" style={componentStyle}>
                                     {currentFicha.desvantagens.length > 0 ? (
                                         currentFicha.desvantagens.map(d => 
-                                            <div key={d} className="text-sm text-stone-300 bg-stone-900/50 p-1 rounded">
+                                            <div key={d} className="text-sm bg-stone-900/50 p-1 rounded" style={componentStyle}>
                                                 <span>{d}</span>
                                             </div>
                                         )
-                                    ) : <p className="text-sm text-stone-500 italic">Nenhuma desvantagem selecionada.</p>}
+                                    ) : <p className="text-sm opacity-70 italic">Nenhuma desvantagem selecionada.</p>}
                                 </div>
                             </div>
                             <div className="grid grid-cols-2 gap-2">
-                                <button onClick={() => setVantagensPanelOpen(true)} className="py-2 px-4 bg-amber-800 hover:bg-amber-700 rounded-md transition">Gerenciar</button>
-                                <button onClick={openExclusionModal} className="py-2 px-4 bg-red-900 hover:bg-red-800 rounded-md transition">Excluir...</button>
+                                <button onClick={() => setVantagensPanelOpen(true)} className="py-2 px-4 bg-amber-800 hover:bg-amber-700 rounded-md transition text-white">Gerenciar</button>
+                                <button onClick={openExclusionModal} className="py-2 px-4 bg-red-900 hover:bg-red-800 rounded-md transition text-white">Excluir...</button>
                             </div>
                         </div>
                     </Section>
@@ -2651,34 +2793,36 @@ const App: React.FC = () => {
                     <Section title="Raça e Classe">
                         <div className="space-y-4">
                             <div>
-                                <label className="font-bold text-amber-500">Raça</label>
-                                <div className="p-3 bg-stone-800 rounded-md min-h-[4rem]">
+                                <label className="font-bold" style={{ color: 'var(--accent-color)' }}>Raça</label>
+                                <div className="p-3 bg-stone-800 rounded-md min-h-[4rem]" style={componentStyle}>
                                     {selectedRacaData ? (
                                         <>
-                                            <h4 className="font-bold text-white text-lg">{selectedRacaData.nome.split(' (')[0]}</h4>
-                                            <p className="text-sm text-stone-400 mt-1">{selectedRacaData.descricao}</p>
+                                            <h4 className="font-bold text-lg">{selectedRacaData.nome.split(' (')[0]}</h4>
+                                            <p className="text-sm opacity-80 mt-1">{selectedRacaData.descricao}</p>
                                         </>
-                                    ) : <p className="text-sm text-stone-500 italic">Nenhuma raça selecionada.</p>}
+                                    ) : <p className="text-sm opacity-70 italic">Nenhuma raça selecionada.</p>}
                                 </div>
                                 <div className="grid grid-cols-2 gap-2 mt-2">
-                                     <button onClick={() => setRacasPanelOpen(true)} className="py-2 px-4 bg-amber-800 hover:bg-amber-700 rounded-md transition">Gerenciar</button>
-                                     <button onClick={openExclusionModal} className="py-2 px-4 bg-red-900 hover:bg-red-800 rounded-md transition" disabled={!currentFicha.racaSelecionada}>Excluir...</button>
+                                     <button onClick={() => setRacasPanelOpen(true)} className="py-2 px-4 bg-amber-800 hover:bg-amber-700 rounded-md transition text-white">Gerenciar</button>
+                                     <button onClick={openExclusionModal} className="py-2 px-4 bg-red-900 hover:bg-red-800 rounded-md transition text-white" disabled={!currentFicha.racaSelecionada}>Excluir...</button>
                                 </div>
                             </div>
                             <div>
-                                <label className="font-bold text-amber-500 block mb-2">Classe</label>
+                                <label className="font-bold block mb-2" style={{ color: 'var(--accent-color)' }}>Classe</label>
                                 <input 
                                     type="text"
                                     placeholder="Nome da Classe"
                                     value={currentFicha.classeNome || ''}
                                     onChange={e => handleUpdate('classeNome', e.target.value)}
                                     className="w-full p-2 bg-stone-800 border border-stone-600 rounded-md mb-2"
+                                    style={componentStyle}
                                 />
                                 <textarea
                                     placeholder="Descrição da Classe"
                                     value={currentFicha.classeDescricao || ''}
                                     onChange={e => handleUpdate('classeDescricao', e.target.value)}
                                     className="w-full p-2 bg-stone-800 border border-stone-600 rounded-md h-24 resize-none"
+                                    style={componentStyle}
                                 />
                             </div>
                         </div>
@@ -2704,10 +2848,10 @@ const App: React.FC = () => {
 
                     <Section title="Utilitários">
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                           <button onClick={() => setNotesModalOpen(true)} className="py-2 px-4 bg-stone-700 hover:bg-stone-600 rounded-md transition-colors">
+                           <button onClick={() => setNotesModalOpen(true)} className="py-2 px-4 bg-stone-700 hover:bg-stone-600 rounded-md transition-colors text-white">
                                 Anotações
                            </button>
-                           <button onClick={() => setHistoryModalOpen(true)} className="py-2 px-4 bg-stone-700 hover:bg-stone-600 rounded-md transition-colors">
+                           <button onClick={() => setHistoryModalOpen(true)} className="py-2 px-4 bg-stone-700 hover:bg-stone-600 rounded-md transition-colors text-white">
                                 Histórico
                            </button>
                         </div>
@@ -2721,7 +2865,7 @@ const App: React.FC = () => {
 
                     <div className="flex justify-center items-center gap-4 pt-4">
                         <button onClick={() => handleUpdate('darkMode', false)} title="Modo Claro" className="p-2 w-12 h-12 text-2xl bg-yellow-400 text-black rounded-full">☀️</button>
-                        <button onClick={() => setCustomizationOpen(true)} className="py-2 px-6 bg-purple-800 hover:bg-purple-700 rounded-md transition-colors text-lg">🎨 Customizar</button>
+                        <button onClick={() => setCustomizationOpen(true)} className="py-2 px-6 bg-purple-800 hover:bg-purple-700 rounded-md transition-colors text-lg text-white">🎨 Customizar</button>
                         <button onClick={() => handleUpdate('darkMode', true)} title="Modo Escuro" className="p-2 w-12 h-12 text-2xl bg-indigo-900 text-white rounded-full">🌙</button>
                     </div>
 
@@ -2773,11 +2917,12 @@ const App: React.FC = () => {
                         value={newFichaName}
                         onChange={(e) => setNewFichaName(e.target.value)}
                         placeholder="Nome da Ficha"
-                        className="w-full p-2 border rounded bg-stone-700 border-stone-600 text-white"
+                        className="w-full p-2 border rounded bg-stone-700 border-stone-600"
+                        style={{ color: 'var(--text-color)' }}
                     />
                     <div className="mt-4 flex justify-end gap-2">
-                        <button onClick={() => setNewFichaModalOpen(false)} className="px-4 py-2 bg-stone-600 rounded">Cancelar</button>
-                        <button onClick={handleCreateFicha} className="px-4 py-2 bg-amber-700 rounded">Criar</button>
+                        <button onClick={() => setNewFichaModalOpen(false)} className="px-4 py-2 bg-stone-600 rounded text-white">Cancelar</button>
+                        <button onClick={handleCreateFicha} className="px-4 py-2 bg-amber-700 rounded text-white">Criar</button>
                     </div>
                 </Modal>
             )}
@@ -2812,8 +2957,8 @@ const App: React.FC = () => {
                 <Modal title="Confirmar Exclusão" onClose={() => setConfirmDeleteOpen(false)}>
                     <p>Tem certeza que deseja excluir a ficha "{currentFicha.nomeFicha}"?</p>
                     <div className="mt-4 flex justify-end gap-2">
-                        <button onClick={() => setConfirmDeleteOpen(false)} className="px-4 py-2 bg-stone-600 rounded">Não</button>
-                        <button onClick={handleConfirmDelete} className="px-4 py-2 bg-red-700 rounded">Sim, Excluir</button>
+                        <button onClick={() => setConfirmDeleteOpen(false)} className="px-4 py-2 bg-stone-600 rounded text-white">Não</button>
+                        <button onClick={handleConfirmDelete} className="px-4 py-2 bg-red-700 rounded text-white">Sim, Excluir</button>
                     </div>
                 </Modal>
             )}
