@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import ReactDOM from 'react-dom/client';
+import { createPortal } from 'react-dom';
 
 // ==========================================================================================
 // Conteúdo de: types.ts
@@ -927,6 +928,101 @@ const generateNpcData = (level: number, archetype: Arquétipo): Partial<Ficha> =
 // Conteúdo de: components
 // ==========================================================================================
 
+const tooltipTexts = {
+    ataque: (nome: string) => `Querido ${nome || 'aventureiro'}, seu Ataque define o quão forte você bate. Ele aumenta 1 ponto para cada ponto em Força. Além disso, a cada 5 pontos em Destreza, você ganha +1 de Ataque bônus, representando sua precisão em pontos vitais. Suas armas também somam aqui!`,
+    ataqueMagico: (nome: string) => `Olá, ${nome || 'conjurador'}! Seu Ataque Mágico é o poder bruto de suas magias. Ele é diretamente ligado à sua Inteligência, recebendo +1 para cada ponto nela. Armas mágicas ou cajados podem aumentar ainda mais esse poder.`,
+    acerto: (nome: string) => `Atenção, ${nome || 'aventureiro'}! Não adianta bater forte se você não acertar o alvo. Seu Acerto representa sua precisão. Ele melhora a cada 3 pontos em Destreza e também ganha um pequeno bônus a cada 10 pontos em Agilidade.`,
+    esquiva: (nome: string) => `Fique esperto, ${nome || 'aventureiro'}! Sua Esquiva é sua capacidade de desviar de golpes. Quanto mais Agilidade, mais difícil será te acertar. Cada 3 pontos de Agilidade aumentam sua Esquiva, tornando você um alvo mais elusivo.`,
+    rdf: (nome: string) => `Firme, ${nome || 'guerreiro'}! Sua RDF (Resistência a Dano Físico) reduz o dano físico que você sofre. A cada 5 pontos de Força, sua resistência aumenta, como se seus músculos ficassem mais densos.`,
+    rdm: (nome: string) => `Mantenha o foco, ${nome || 'sábio'}! Sua RDM (Resistência a Dano Mágico) é sua barreira contra magias. A cada 5 pontos de Inteligência, sua mente fica mais forte e você consegue resistir melhor a danos mágicos.`,
+    capacidadeCarga: (nome: string) => `Ei, ${nome || 'aventureiro'}, um herói precisa carregar seus equipamentos! Sua Capacidade de Carga começa em 5kg e aumenta em 1kg para cada 5 pontos em Força. Cuidado para não carregar peso demais, ou você ficará lento e desajeitado em combate!`,
+    velocidadeCorrida: (nome: string) => `Corra, ${nome || 'aventureiro'}, corra! Todos começam com uma velocidade de 25 km/h. Sua Agilidade te deixa mais rápido, aumentando sua velocidade em 3 km/h para cada 3 pontos que você investe nela.`,
+    alturaPulo: (nome: string) => `Para o alto e avante, ${nome || 'atleta'}! Sua capacidade de pular para cima depende da sua Força. A cada 10 pontos de Força, você consegue pular 1 metro a mais, começando com um base de 1 metro.`,
+    distanciaPulo: (nome: string) => `Um grande salto pode te salvar, ${nome || 'explorador'}! O quão longe você pula depende tanto da sua Força quanto da sua Agilidade. A cada 5 pontos em Força e 5 pontos em Agilidade, você ganha 3 metros a mais no seu pulo, que começa com 3 metros de base.`,
+};
+
+// --- Tooltip.tsx ---
+const Tooltip: React.FC<{ text: string }> = ({ text }) => {
+    const [visible, setVisible] = useState(false);
+    // Start off-screen and invisible
+    const [position, setPosition] = useState({ top: -9999, left: -9999, opacity: 0 }); 
+    const triggerRef = useRef<HTMLSpanElement>(null);
+    const tooltipRef = useRef<HTMLDivElement>(null);
+
+    const handleMouseEnter = () => {
+        setVisible(true);
+    };
+
+    const handleMouseLeave = () => {
+        setVisible(false);
+        // Reset position when hiding
+        setPosition({ top: -9999, left: -9999, opacity: 0 }); 
+    };
+
+    useEffect(() => {
+        if (visible && triggerRef.current && tooltipRef.current) {
+            const sheetContainer = document.getElementById('character-sheet-container');
+            if (!sheetContainer) return;
+
+            // Measure the tooltip now that it's rendered (but invisible/off-screen)
+            const tooltipRect = tooltipRef.current.getBoundingClientRect();
+            const triggerRect = triggerRef.current.getBoundingClientRect();
+            const sheetRect = sheetContainer.getBoundingClientRect();
+            
+            const tooltipWidth = tooltipRect.width;
+            const tooltipHeight = tooltipRect.height;
+            const margin = 8;
+
+            // Center horizontally relative to the sheet container
+            let left = sheetRect.left + (sheetRect.width / 2) - (tooltipWidth / 2);
+
+            // Position above the trigger element
+            let top = triggerRect.top - tooltipHeight - margin;
+
+            // Boundary checks
+            if (top < margin) {
+                top = triggerRect.bottom + margin;
+            }
+            if (left < margin) {
+                left = margin;
+            }
+            if (left + tooltipWidth > window.innerWidth - margin) {
+                left = window.innerWidth - tooltipWidth - margin;
+            }
+
+            // Update position and make it visible
+            setPosition({ top, left, opacity: 1 });
+        }
+    }, [visible, text]); // Re-calculate if visibility or text changes
+
+    const tooltipElement = createPortal(
+        <div
+            ref={tooltipRef}
+            className="tooltip-text-portal"
+            style={{
+                top: `${position.top}px`,
+                left: `${position.left}px`,
+                opacity: position.opacity,
+            }}
+        >
+            {text}
+        </div>,
+        document.body
+    );
+
+    return (
+        <span
+            ref={triggerRef}
+            className="tooltip-container"
+            onMouseEnter={handleMouseEnter}
+            onMouseLeave={handleMouseLeave}
+        >
+            <span className="tooltip-icon">(?)</span>
+            {tooltipElement}
+        </span>
+    );
+};
+
 // --- EditableStat.tsx ---
 interface EditableStatProps {
     value: number;
@@ -1222,7 +1318,10 @@ const Attributes: React.FC<AttributesProps> = ({ ficha, onBulkUpdate, selectedAt
                      const isSelected = selectedAttribute === attrKey;
                      return (
                          <div key={key} className="flex justify-between items-center py-2 px-3 bg-stone-900/50 rounded-md" style={componentStyle}>
-                            <label className="font-bold" style={{ color: 'var(--accent-color)' }}>{label}</label>
+                            <label className="font-bold flex items-center" style={{ color: 'var(--accent-color)' }}>
+                                {label}
+                                <Tooltip text={tooltipTexts[key as keyof typeof tooltipTexts](ficha.nomePersonagem)} />
+                            </label>
                             <div className="flex items-center gap-2">
                                 <EditableStat 
                                     value={displayFicha[attrKey] as number}
@@ -1811,17 +1910,8 @@ const Header: React.FC<HeaderProps> = ({ fichas, currentFichaId, switchFicha, no
 
     return (
         <header className="bg-stone-900 p-4 border-b border-stone-700" style={{backgroundColor: 'rgba(0,0,0,0.2)', borderColor: 'var(--border-color)'}}>
-            <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
-                 <input
-                    type="text"
-                    id="nome-personagem"
-                    placeholder="Nome do Personagem"
-                    value={nomePersonagem}
-                    onChange={(e) => handleUpdate('nomePersonagem', e.target.value)}
-                    className="w-full sm:w-auto text-2xl sm:text-3xl font-medieval bg-transparent text-center sm:text-left focus:outline-none focus:ring-2 focus:ring-amber-500 rounded-md px-2 py-1"
-                    style={{ color: 'var(--accent-color)' }}
-                />
-                <div className="flex items-center gap-2">
+            <div className="flex flex-col gap-4">
+                <div className="w-full flex flex-wrap justify-center sm:justify-end items-center gap-2">
                      <select
                         value={currentFichaId}
                         onChange={(e) => switchFicha(e.target.value)}
@@ -1886,6 +1976,15 @@ const Header: React.FC<HeaderProps> = ({ fichas, currentFichaId, switchFicha, no
                         ⚙️
                     </button>
                 </div>
+                <input
+                    type="text"
+                    id="nome-personagem"
+                    placeholder="Nome do Personagem"
+                    value={nomePersonagem}
+                    onChange={(e) => handleUpdate('nomePersonagem', e.target.value)}
+                    className="w-full text-2xl sm:text-3xl font-medieval bg-transparent text-center focus:outline-none focus:ring-2 focus:ring-amber-500 rounded-md px-2 py-1"
+                    style={{ color: 'var(--accent-color)' }}
+                />
             </div>
         </header>
     );
@@ -1976,8 +2075,9 @@ const Inventory: React.FC<InventoryProps> = ({ ficha, onUpdate }) => {
         <div>
             <div className="flex justify-between items-center mb-2">
                 <h3 className="font-medieval text-lg">Inventário</h3>
-                <span className={`text-sm font-mono`} style={{ color: pesoColor }}>
+                <span className={`text-sm font-mono flex items-center justify-end`} style={{ color: pesoColor }}>
                     {ficha.pesoTotal.toFixed(1)} / {ficha.capacidadeCarga} kg
+                    <Tooltip text={tooltipTexts.capacidadeCarga(ficha.nomePersonagem)} />
                 </span>
             </div>
             <div className="space-y-2 max-h-60 overflow-y-auto pr-2">
@@ -2021,9 +2121,10 @@ const LocomotionStat: React.FC<{
     unit: string;
     icon: string;
     attrKey: string;
+    charName: string;
     selectedAttribute: string | null;
     setSelectedAttribute: (attr: string | null) => void;
-}> = ({ label, value, unit, icon, attrKey, selectedAttribute, setSelectedAttribute }) => {
+}> = ({ label, value, unit, icon, attrKey, charName, selectedAttribute, setSelectedAttribute }) => {
     const isSelected = selectedAttribute === attrKey;
 
     const toggleSelection = () => {
@@ -2037,6 +2138,7 @@ const LocomotionStat: React.FC<{
             <label className="font-bold flex items-center gap-2">
                 <span>{icon}</span>
                 {label}
+                <Tooltip text={tooltipTexts[attrKey as keyof typeof tooltipTexts](charName)} />
             </label>
             <div className="flex items-center gap-2">
                 <span className="font-bold text-lg">
@@ -2065,6 +2167,7 @@ const Locomotion: React.FC<LocomotionProps> = ({ ficha, selectedAttribute, setSe
                 unit="km/h"
                 icon="🏃‍♂️"
                 attrKey="velocidadeCorrida"
+                charName={ficha.nomePersonagem}
                 selectedAttribute={selectedAttribute}
                 setSelectedAttribute={setSelectedAttribute}
             />
@@ -2074,6 +2177,7 @@ const Locomotion: React.FC<LocomotionProps> = ({ ficha, selectedAttribute, setSe
                 unit="m"
                 icon="⬆️"
                 attrKey="alturaPulo"
+                charName={ficha.nomePersonagem}
                 selectedAttribute={selectedAttribute}
                 setSelectedAttribute={setSelectedAttribute}
             />
@@ -2083,6 +2187,7 @@ const Locomotion: React.FC<LocomotionProps> = ({ ficha, selectedAttribute, setSe
                 unit="m"
                 icon="➡️"
                 attrKey="distanciaPulo"
+                charName={ficha.nomePersonagem}
                 selectedAttribute={selectedAttribute}
                 setSelectedAttribute={setSelectedAttribute}
             />
@@ -3307,6 +3412,39 @@ const App: React.FC = () => {
         --border-color: #00aaff !important;
         --accent-color: #00ffff !important;
         --text-color: #e6f7ff !important;
+      }
+      .tooltip-container {
+        display: inline-flex;
+        align-items: center;
+        margin-left: 4px;
+      }
+      .tooltip-icon {
+        font-size: 0.7rem;
+        line-height: 1;
+        font-weight: bold;
+        cursor: help;
+        opacity: 0.6;
+        transition: opacity 0.2s;
+        user-select: none;
+      }
+      .tooltip-container:hover .tooltip-icon {
+        opacity: 1;
+      }
+      .tooltip-text-portal {
+        position: fixed;
+        width: 240px;
+        background-color: #1f1f1f;
+        color: #fff;
+        text-align: left;
+        font-family: 'Inter', sans-serif;
+        font-weight: 400;
+        border: 1px solid var(--border-color);
+        border-radius: 6px;
+        padding: 10px;
+        z-index: 1000;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+        pointer-events: none;
+        transition: opacity 0.2s;
       }
     `;
 
