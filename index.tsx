@@ -1946,6 +1946,11 @@ interface RacasPanelProps {
 
 const RacasPanel: React.FC<RacasPanelProps> = ({ ficha, pontosVantagemDisponiveis, onUpdate, onClose }) => {
     const [tempRaca, setTempRaca] = useState<string | null>(ficha.racaSelecionada);
+    const [showSavedMessage, setShowSavedMessage] = useState(false);
+
+    useEffect(() => {
+        setTempRaca(ficha.racaSelecionada);
+    }, [ficha.racaSelecionada]);
 
     const calcularPHRestante = (selectedRaca: string | null) => {
         let ph = ficha.pontosVantagemTotais;
@@ -1967,8 +1972,8 @@ const RacasPanel: React.FC<RacasPanelProps> = ({ ficha, pontosVantagemDisponivei
     const phRestante = calcularPHRestante(tempRaca);
 
     const handleSelectRaca = (nome: string, custo: number) => {
-        const isAlreadySaved = ficha.racaSelecionada === nome;
-        if (isAlreadySaved) {
+        if (ficha.racaSelecionada) {
+            alert("Uma raça já foi selecionada. Para alterar, use a opção 'Excluir...' na ficha.");
             return;
         }
 
@@ -1983,25 +1988,56 @@ const RacasPanel: React.FC<RacasPanelProps> = ({ ficha, pontosVantagemDisponivei
     
     const handleSave = () => {
         onUpdate('racaSelecionada', tempRaca);
-        onClose();
+        setShowSavedMessage(true);
+        setTimeout(() => setShowSavedMessage(false), 2000);
     };
     
     const componentStyle = { backgroundColor: 'var(--component-bg-color)' };
+    const isRaceLocked = !!ficha.racaSelecionada;
 
     return (
         <div className="fixed inset-0 bg-black/80 z-40 flex flex-col p-4">
-            <div className="bg-stone-900 rounded-lg p-4 flex-grow flex flex-col border border-stone-700 relative">
-                 <button onClick={onClose} className="absolute top-2 right-2 text-2xl opacity-70 hover:opacity-100 z-10">&times;</button>
-                <h2 className="text-3xl font-medieval text-center">Raças</h2>
-                <p className="text-center mb-4">Pontos Restantes Após Seleção: <span className={`font-bold text-lg ${phRestante < 0 ? 'text-red-500' : 'text-green-400'}`}>{phRestante}</span></p>
+            <div className="bg-stone-900 rounded-lg p-4 flex-grow flex flex-col border border-stone-700 relative min-h-0">
+                <button onClick={onClose} className="absolute top-4 right-4 text-3xl font-bold text-yellow-500 hover:text-yellow-400 z-10">&times;</button>
+                <div className="text-center mb-4">
+                    <h2 className="text-3xl font-medieval">Raças</h2>
+                    <p>Pontos Restantes Após Seleção: <span className={`font-bold text-lg ${phRestante < 0 ? 'text-red-500' : 'text-green-400'}`}>{phRestante}</span></p>
+                    <div className="mt-2 flex justify-center items-center gap-4">
+                         <button 
+                            onClick={handleSave} 
+                            className="py-2 px-6 bg-amber-700 hover:bg-amber-600 rounded-md transition text-white disabled:bg-stone-600 disabled:cursor-not-allowed" 
+                            disabled={isRaceLocked || tempRaca === ficha.racaSelecionada}
+                         >
+                            Salvar
+                        </button>
+                        {showSavedMessage && <span className="text-green-400 text-sm">Salvo!</span>}
+                    </div>
+                </div>
 
-                <div className="flex-grow overflow-y-auto space-y-3 pr-2">
+                <div className="flex-grow overflow-y-auto space-y-3 pr-2 min-h-0">
                     {racasData.map(raca => {
                         const isSelected = tempRaca === raca.nome;
-                        const isSaved = ficha.racaSelecionada === raca.nome;
+                        const isSavedAndLocked = isRaceLocked && ficha.racaSelecionada === raca.nome;
+                        const isDisabled = isRaceLocked && !isSavedAndLocked;
+
+                        let containerClasses = 'p-3 rounded transition-all border-2 ';
+                        if (isSavedAndLocked) {
+                            containerClasses += 'border-amber-700 bg-amber-900/70 cursor-default';
+                        } else if (isDisabled) {
+                            containerClasses += 'border-transparent bg-stone-800 opacity-50 cursor-not-allowed';
+                        } else if (isSelected) {
+                            containerClasses += 'border-amber-500 bg-amber-900/50 cursor-pointer';
+                        } else {
+                            containerClasses += 'border-transparent bg-stone-800 hover:bg-stone-700 cursor-pointer';
+                        }
                         
                         return (
-                         <div key={raca.nome} onClick={() => handleSelectRaca(raca.nome, raca.custo)} className={`p-3 rounded transition-colors border-2 ${isSaved ? 'border-amber-700 bg-amber-900/70 cursor-not-allowed' : (isSelected ? 'border-amber-500 bg-amber-900/50 cursor-pointer' : 'border-transparent bg-stone-800 hover:bg-stone-700 cursor-pointer')}`} style={isSaved ? {} : (isSelected ? {} : componentStyle)}>
+                         <div 
+                            key={raca.nome} 
+                            onClick={() => handleSelectRaca(raca.nome, raca.custo)} 
+                            className={containerClasses}
+                            style={isSavedAndLocked || isSelected ? {} : componentStyle}
+                         >
                             <h3 className="font-medieval text-lg" style={{ color: 'var(--accent-color)' }}>{raca.nome} ({raca.custo} PH)</h3>
                             <p className="text-sm mb-2">{raca.descricao}</p>
                             <ul className="list-disc list-inside text-xs opacity-70 space-y-1">
@@ -2009,11 +2045,6 @@ const RacasPanel: React.FC<RacasPanelProps> = ({ ficha, pontosVantagemDisponivei
                             </ul>
                         </div>
                     )})}
-                </div>
-
-                <div className="flex gap-2 mt-4 pt-4 border-t border-stone-700">
-                    <button onClick={onClose} className="flex-1 py-2 px-4 bg-stone-700 hover:bg-stone-600 rounded-md transition text-white">Cancelar</button>
-                    <button onClick={handleSave} className="flex-1 py-2 px-4 bg-amber-700 hover:bg-amber-600 rounded-md transition text-white">Salvar</button>
                 </div>
             </div>
         </div>
@@ -2277,6 +2308,12 @@ interface VantagensDesvantagensPanelProps {
 const VantagensDesvantagensPanel: React.FC<VantagensDesvantagensPanelProps> = ({ ficha, pontosVantagemDisponiveis, onBulkUpdate, onClose }) => {
     const [tempVantagens, setTempVantagens] = useState([...ficha.vantagens]);
     const [tempDesvantagens, setTempDesvantagens] = useState([...ficha.desvantagens]);
+    const [showSavedMessage, setShowSavedMessage] = useState(false);
+
+    useEffect(() => {
+        setTempVantagens([...ficha.vantagens]);
+        setTempDesvantagens([...ficha.desvantagens]);
+    }, [ficha.vantagens, ficha.desvantagens]);
 
     const calcularPHRestante = () => {
         let ph = pontosVantagemDisponiveis;
@@ -2340,16 +2377,35 @@ const VantagensDesvantagensPanel: React.FC<VantagensDesvantagensPanelProps> = ({
             vantagens: tempVantagens,
             desvantagens: tempDesvantagens,
         });
-        onClose();
+        setShowSavedMessage(true);
+        setTimeout(() => setShowSavedMessage(false), 2000);
     };
     
     const componentStyle = { backgroundColor: 'var(--component-bg-color)' };
 
+    const arraysAreEqual = (a: string[], b: string[]) => {
+        if (a.length !== b.length) return false;
+        const sortedA = [...a].sort();
+        const sortedB = [...b].sort();
+        return sortedA.every((value, index) => value === sortedB[index]);
+    };
+
+    const hasChanges = !arraysAreEqual(tempVantagens, ficha.vantagens) || !arraysAreEqual(tempDesvantagens, ficha.desvantagens);
+
     return (
         <div className="fixed inset-0 bg-black/80 z-40 flex flex-col p-4">
-            <div className="bg-stone-900 rounded-lg p-4 flex-grow flex flex-col border border-stone-700">
-                <h2 className="text-3xl font-medieval text-center">Vantagens e Desvantagens</h2>
-                <p className="text-center mb-4">Pontos Restantes: <span className="font-bold text-lg text-green-400">{phRestante}</span></p>
+            <div className="bg-stone-900 rounded-lg p-4 flex-grow flex flex-col border border-stone-700 relative">
+                <button onClick={onClose} className="absolute top-4 right-4 text-3xl font-bold text-yellow-500 hover:text-yellow-400 z-10">&times;</button>
+                <div className="text-center mb-4">
+                    <h2 className="text-3xl font-medieval">Vantagens e Desvantagens</h2>
+                    <p>Pontos Restantes: <span className={`font-bold text-lg ${phRestante < 0 ? 'text-red-500' : 'text-green-400'}`}>{phRestante}</span></p>
+                    <div className="mt-2 flex justify-center items-center gap-4">
+                        <button onClick={handleSave} className="py-2 px-6 bg-amber-700 hover:bg-amber-600 rounded-md transition text-white disabled:bg-stone-600 disabled:cursor-not-allowed" disabled={!hasChanges}>
+                            Salvar
+                        </button>
+                        {showSavedMessage && <span className="text-green-400 text-sm">Salvo!</span>}
+                    </div>
+                </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 flex-grow overflow-y-auto">
                     <div className="space-y-2">
@@ -2379,11 +2435,6 @@ const VantagensDesvantagensPanel: React.FC<VantagensDesvantagensPanelProps> = ({
                             )})}
                         </div>
                     </div>
-                </div>
-
-                <div className="flex gap-2 mt-4 pt-4 border-t border-stone-700">
-                    <button onClick={onClose} className="flex-1 py-2 px-4 bg-stone-700 hover:bg-stone-600 rounded-md transition text-white">Cancelar</button>
-                    <button onClick={handleSave} className="flex-1 py-2 px-4 bg-amber-700 hover:bg-amber-600 rounded-md transition text-white">Salvar</button>
                 </div>
             </div>
         </div>
