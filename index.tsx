@@ -2663,9 +2663,9 @@ const VantagensDesvantagensPanel: React.FC<VantagensDesvantagensPanelProps> = ({
 
     return (
         <div className="fixed inset-0 bg-black/80 z-40 flex flex-col p-4">
-            <div className="bg-stone-900 rounded-lg p-4 flex-grow flex flex-col border border-stone-700 relative">
+            <div className="bg-stone-900 rounded-lg p-4 flex-grow flex flex-col border border-stone-700 relative min-h-0">
                 <button onClick={onClose} className="absolute top-4 right-4 text-3xl font-bold text-yellow-500 hover:text-yellow-400 z-10">&times;</button>
-                <div className="text-center mb-4">
+                <div className="text-center mb-4 flex-shrink-0">
                     <h2 className="text-3xl font-medieval">Vantagens e Desvantagens</h2>
                     <p>Pontos Restantes: <span className={`font-bold text-lg ${phRestante < 0 ? 'text-red-500' : 'text-green-400'}`}>{phRestante}</span></p>
                     <div className="mt-2 flex justify-center items-center gap-4">
@@ -2676,10 +2676,10 @@ const VantagensDesvantagensPanel: React.FC<VantagensDesvantagensPanelProps> = ({
                     </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 flex-grow overflow-y-auto">
-                    <div className="space-y-2">
-                        <h3 className="text-xl font-medieval">Vantagens</h3>
-                        <div className="space-y-1 max-h-96 overflow-y-auto pr-2">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 flex-grow overflow-hidden min-h-0">
+                    <div className="space-y-2 flex flex-col min-h-0">
+                        <h3 className="text-xl font-medieval flex-shrink-0">Vantagens</h3>
+                        <div className="space-y-1 flex-grow overflow-y-auto pr-2">
                             {vantagensData.map(v => {
                                 const isSelected = tempVantagens.includes(v.nome);
                                 const isSaved = ficha.vantagens.includes(v.nome);
@@ -2691,9 +2691,9 @@ const VantagensDesvantagensPanel: React.FC<VantagensDesvantagensPanelProps> = ({
                             )})}
                         </div>
                     </div>
-                     <div className="space-y-2">
-                        <h3 className="text-xl font-medieval text-red-500">Desvantagens</h3>
-                        <div className="space-y-1 max-h-96 overflow-y-auto pr-2">
+                     <div className="space-y-2 flex flex-col min-h-0">
+                        <h3 className="text-xl font-medieval text-red-500 flex-shrink-0">Desvantagens</h3>
+                        <div className="space-y-1 flex-grow overflow-y-auto pr-2">
                             {desvantagensData.map(d => {
                                 const isSelected = tempDesvantagens.includes(d.nome);
                                 const isSaved = ficha.desvantagens.includes(d.nome);
