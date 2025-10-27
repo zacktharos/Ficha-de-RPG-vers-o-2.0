@@ -32,20 +32,21 @@
         color: var(--accent-color);
       }
     </style>
-  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   <script type="importmap">
 {
   "imports": {
-    "react-dom": "https://aistudiocdn.com/react-dom@19.2.0",
-    "react-dom/": "https://aistudiocdn.com/react-dom@19.2.0/",
-    "react/": "https://aistudiocdn.com/react@19.2.0/",
-    "react": "https://aistudiocdn.com/react@19.2.0"
+    "react": "https://aistudiocdn.com/react@^19.2.0",
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
+    "react/": "https://aistudiocdn.com/react@^19.2.0/"
   }
 }
 </script>
 </head>
   <body>
     <div id="root"></div>
-    <script type="text/babel" src="./index.tsx"></script>
+    <!-- Adicionado Babel para transpilar TSX em tempo real no navegador -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <!-- Alterado o type e adicionado presets para que o Babel processe o script corretamente -->
+    <script type="text/babel" data-type="module" data-presets="react,typescript" src="./index.tsx"></script>
   </body>
 </html>
