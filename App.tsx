@@ -13,6 +13,15 @@ import { calcularAtributos } from './utils/calculations';
 // Conteúdo de: components
 // ==========================================================================================
 
+type EditableAttributes = Pick<Ficha, 'forca' | 'destreza' | 'agilidade' | 'constituicao' | 'inteligencia'>;
+const attributeLabels: Record<keyof EditableAttributes, string> = {
+    forca: 'Força',
+    destreza: 'Destreza',
+    agilidade: 'Agilidade',
+    constituicao: 'Constituição',
+    inteligencia: 'Inteligência',
+};
+
 const tooltipTexts = {
     ataque: (nome: string) => `Querido ${nome || 'aventureiro'}, seu Ataque define o quão forte você bate. Ele aumenta 1 ponto para cada ponto em Força. Além disso, a cada 5 pontos em Destreza, você ganha +1 de Ataque bônus, representando sua precisão em pontos vitais. Suas armas também somam aqui!`,
     ataqueMagico: (nome: string) => `Olá, ${nome || 'conjurador'}! Seu Ataque Mágico é o poder bruto de suas magias. Ele é diretamente ligado à sua Inteligência, recebendo +1 para cada ponto nela. Armas mágicas ou cajados podem aumentar ainda mais esse poder.`,
@@ -251,8 +260,6 @@ const Actions: React.FC<ActionsProps> = ({ onResetPontos, onRecomecar, onRequest
 };
 
 // --- Attributes.tsx ---
-type EditableAttributes = Pick<Ficha, 'forca' | 'destreza' | 'agilidade' | 'constituicao' | 'inteligencia'>;
-
 interface AttributesProps {
     ficha: Ficha;
     onBulkUpdate: (updates: Partial<Ficha>) => void;
@@ -262,13 +269,6 @@ interface AttributesProps {
     onGmUpdate: (attr: keyof Ficha, adjustment: number) => void;
 }
 
-const attributeLabels: Record<keyof EditableAttributes, string> = {
-    forca: 'Força',
-    destreza: 'Destreza',
-    agilidade: 'Agilidade',
-    constituicao: 'Constituição',
-    inteligencia: 'Inteligência',
-};
 const derivedAttributeLabels: Record<string, string> = {
     ataque: "Ataque",
     ataqueMagico: "Ataque Mágico",
