@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import ReactDOM from 'react-dom/client';
 
@@ -1170,6 +1169,33 @@ const Combat: React.FC<CombatProps> = ({ ficha, onUpdate, isGmMode }) => {
     );
 };
 
+// --- CompactDerivedStats.tsx ---
+const CompactDerivedStats: React.FC<{ ficha: Ficha }> = ({ ficha }) => {
+    const stats = {
+        Ataque: ficha.ataque,
+        'Atq. Mágico': ficha.ataqueMagico,
+        Acerto: ficha.acerto,
+        Esquiva: ficha.esquiva,
+        RDF: ficha.rdf,
+        RDM: ficha.rdm,
+    };
+    const componentStyle = { backgroundColor: 'var(--component-bg-color)' };
+
+    return (
+        <div className="p-3 rounded-lg" style={componentStyle}>
+            <h3 className="font-medieval text-lg text-center mb-2">Combate Rápido</h3>
+            <div className="grid grid-cols-3 gap-2 text-center">
+                {Object.entries(stats).map(([label, value]) => (
+                    <div key={label}>
+                        <div className="text-xs opacity-80" style={{color: 'var(--accent-color)'}}>{label}</div>
+                        <div className="text-xl font-bold">{value}</div>
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+};
+
 // --- CustomizationModal.tsx ---
 interface CustomizationModalProps {
     ficha: Ficha;
@@ -1401,7 +1427,7 @@ const DiceRoller: React.FC<DiceRollerProps> = ({ onRoll, selectedAttribute, setS
         return (
             <button 
                 onClick={() => setIsPanelOpen(true)}
-                className="fixed bottom-4 left-1/2 -translate-x-1/2 z-30 w-14 h-14 bg-stone-800 border-2 rounded-full shadow-lg flex items-center justify-center hover:bg-stone-700 transition-all"
+                className="fixed bottom-4 right-4 sm:bottom-4 sm:left-1/2 sm:-translate-x-1/2 z-30 w-14 h-14 bg-stone-800 border-2 rounded-full shadow-lg flex items-center justify-center hover:bg-stone-700 transition-all"
                 style={{ borderColor: 'var(--accent-color)', color: 'var(--accent-color)', backgroundColor: ficha.darkMode ? '#2d2d2d' : '' }}
                 title="Rolar Dados"
             >
@@ -2296,6 +2322,39 @@ const Skills: React.FC<SkillsProps> = ({ ficha, onUpdate }) => {
     );
 };
 
+// --- TabBar.tsx ---
+interface TabBarProps {
+    activeTab: string;
+    onTabClick: (tab: string) => void;
+}
+
+const TabBar: React.FC<TabBarProps> = ({ activeTab, onTabClick }) => {
+    const tabs = [
+        { id: 'principal', icon: '🛡️', label: 'Principal' },
+        { id: 'atributos', icon: '💪', label: 'Atributos' },
+        { id: 'inventario', icon: '🎒', label: 'Inventário' },
+        { id: 'habilidades', icon: '✨', label: 'Habilidades' },
+        { id: 'perfil', icon: '👤', label: 'Perfil' },
+    ];
+
+    return (
+        <div className="fixed bottom-0 left-0 right-0 bg-stone-900 border-t border-stone-700 flex justify-around sm:hidden z-20" style={{ backgroundColor: 'var(--sheet-bg-color)', borderColor: 'var(--border-color)'}}>
+            {tabs.map(tab => (
+                <button
+                    key={tab.id}
+                    onClick={() => onTabClick(tab.id)}
+                    className={`flex flex-col items-center justify-center pt-2 pb-1 w-full text-xs transition-colors duration-200`}
+                    style={{ color: activeTab === tab.id ? 'var(--accent-color)' : 'var(--text-color)', opacity: activeTab !== tab.id ? 0.7 : 1 }}
+                >
+                    <span className="text-2xl">{tab.icon}</span>
+                    <span className="mt-1">{tab.label}</span>
+                    {activeTab === tab.id && <div className="w-10 h-1 rounded-full mt-1" style={{ backgroundColor: 'var(--accent-color)' }}></div>}
+                </button>
+            ))}
+        </div>
+    );
+};
+
 // --- VantagensDesvantagensPanel.tsx ---
 interface VantagensDesvantagensPanelProps {
     ficha: Ficha;
@@ -2648,6 +2707,8 @@ const App: React.FC = () => {
     } = useCharacterSheet();
 
     useDynamicStyles(currentFicha);
+    
+    const [activeTab, setActiveTab] = useState('principal');
 
     const [isVantagensPanelOpen, setVantagensPanelOpen] = useState(false);
     const [isRacasPanelOpen, setRacasPanelOpen] = useState(false);
@@ -2751,177 +2812,235 @@ const App: React.FC = () => {
                     onToggleGmMode={toggleGmMode}
                 />
                 
-                <main className="p-2 sm:p-4 space-y-4">
-                    <Section title="Informações Básicas" defaultOpen>
-                        <div className="flex flex-col sm:flex-row gap-4 items-center">
-                            <textarea
-                                id="descricao-personagem"
-                                placeholder="Descrição do seu personagem"
-                                value={currentFicha.descricaoPersonagem}
-                                onChange={(e) => handleUpdate('descricaoPersonagem', e.target.value)}
-                                className="w-full flex-grow p-2 bg-stone-800 border border-stone-600 rounded-md h-40 resize-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
-                                style={componentStyle}
-                            />
-                            <CharacterImage
-                                image={currentFicha.characterImage}
-                                onUpdate={(img) => handleUpdate('characterImage', img)}
-                            />
-                        </div>
-                    </Section>
-
-                    <Section title="Recursos">
-                        <ResourceBars 
-                            ficha={currentFicha} 
-                            onUpdate={handleBulkUpdate} 
-                            isGmMode={isGmMode}
-                            onGmUpdate={updateGmAdjustment}
-                        />
-                    </Section>
-
-                    <Section title="Atributos">
-                        <Attributes 
-                            ficha={currentFicha}
-                            onBulkUpdate={handleBulkUpdate}
-                            selectedAttribute={selectedAttribute}
-                            setSelectedAttribute={setSelectedAttribute}
-                            isGmMode={isGmMode}
-                            onGmUpdate={updateGmAdjustment}
-                        />
-                    </Section>
-                    
-                    <Section title="Combate">
-                        <Combat 
-                            ficha={currentFicha} 
-                            onUpdate={handleUpdate} 
-                            onRecalculate={calcularAtributos} 
-                            isGmMode={isGmMode}
-                            onGmUpdate={updateGmAdjustment}
-                        />
-                    </Section>
-
-                    <Section title="Inventário">
-                        <Inventory ficha={currentFicha} onUpdate={handleUpdate as any} onRecalculate={calcularAtributos}/>
-                    </Section>
-
-                    <Section title="Habilidades">
-                        <Skills ficha={currentFicha} onUpdate={handleBulkUpdate} />
-                    </Section>
-
-                    <Section title="Vantagens e Desvantagens">
-                        <div className="space-y-4">
-                            <div>
-                                <h3 className="font-bold" style={{ color: 'var(--accent-color)' }}>Vantagens</h3>
-                                <div className="p-2 bg-stone-800 rounded-md min-h-[4rem] space-y-1" style={componentStyle}>
-                                    {currentFicha.vantagens.length > 0 ? (
-                                        currentFicha.vantagens.map(v => 
-                                            <div key={v} className="text-sm bg-stone-900/50 p-1 rounded" style={componentStyle}>
-                                                <span>{v}</span>
-                                            </div>
-                                        )
-                                    ) : <p className="text-sm opacity-70 italic">Nenhuma vantagem selecionada.</p>}
-                                </div>
-                            </div>
-                            <div>
-                                <h3 className="font-bold text-red-500">Desvantagens</h3>
-                                <div className="p-2 bg-stone-800 rounded-md min-h-[4rem] space-y-1" style={componentStyle}>
-                                    {currentFicha.desvantagens.length > 0 ? (
-                                        currentFicha.desvantagens.map(d => 
-                                            <div key={d} className="text-sm bg-stone-900/50 p-1 rounded" style={componentStyle}>
-                                                <span>{d}</span>
-                                            </div>
-                                        )
-                                    ) : <p className="text-sm opacity-70 italic">Nenhuma desvantagem selecionada.</p>}
-                                </div>
-                            </div>
-                            <div className="grid grid-cols-2 gap-2">
-                                <button onClick={() => setVantagensPanelOpen(true)} className="py-2 px-4 bg-amber-800 hover:bg-amber-700 rounded-md transition text-white">Gerenciar</button>
-                                <button onClick={openExclusionModal} className="py-2 px-4 bg-red-900 hover:bg-red-800 rounded-md transition text-white">Excluir...</button>
-                            </div>
-                        </div>
-                    </Section>
-
-                    <Section title="Raça e Classe">
-                        <div className="space-y-4">
-                            <div>
-                                <label className="font-bold" style={{ color: 'var(--accent-color)' }}>Raça</label>
-                                <div className="p-3 bg-stone-800 rounded-md min-h-[4rem]" style={componentStyle}>
-                                    {selectedRacaData ? (
-                                        <>
-                                            <h4 className="font-bold text-lg">{selectedRacaData.nome.split(' (')[0]}</h4>
-                                            <p className="text-sm opacity-80 mt-1">{selectedRacaData.descricao}</p>
-                                        </>
-                                    ) : <p className="text-sm opacity-70 italic">Nenhuma raça selecionada.</p>}
-                                </div>
-                                <div className="grid grid-cols-2 gap-2 mt-2">
-                                     <button onClick={() => setRacasPanelOpen(true)} className="py-2 px-4 bg-amber-800 hover:bg-amber-700 rounded-md transition text-white">Gerenciar</button>
-                                     <button onClick={openExclusionModal} className="py-2 px-4 bg-red-900 hover:bg-red-800 rounded-md transition text-white" disabled={!currentFicha.racaSelecionada}>Excluir...</button>
-                                </div>
-                            </div>
-                            <div>
-                                <label className="font-bold block mb-2" style={{ color: 'var(--accent-color)' }}>Classe</label>
-                                <input 
-                                    type="text"
-                                    placeholder="Nome da Classe"
-                                    value={currentFicha.classeNome || ''}
-                                    onChange={e => handleUpdate('classeNome', e.target.value)}
-                                    className="w-full p-2 bg-stone-800 border border-stone-600 rounded-md mb-2"
-                                    style={componentStyle}
-                                />
+                <main className="p-2 sm:p-4">
+                    {/* ======== DESKTOP VIEW ======== */}
+                    <div className="hidden sm:space-y-4 sm:block">
+                        <Section title="Informações Básicas" defaultOpen>
+                            <div className="flex flex-col sm:flex-row gap-4 items-center">
                                 <textarea
-                                    placeholder="Descrição da Classe"
-                                    value={currentFicha.classeDescricao || ''}
-                                    onChange={e => handleUpdate('classeDescricao', e.target.value)}
-                                    className="w-full p-2 bg-stone-800 border border-stone-600 rounded-md h-24 resize-none"
+                                    id="descricao-personagem"
+                                    placeholder="Descrição do seu personagem"
+                                    value={currentFicha.descricaoPersonagem}
+                                    onChange={(e) => handleUpdate('descricaoPersonagem', e.target.value)}
+                                    className="w-full flex-grow p-2 bg-stone-800 border border-stone-600 rounded-md h-40 resize-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
                                     style={componentStyle}
                                 />
+                                <CharacterImage
+                                    image={currentFicha.characterImage}
+                                    onUpdate={(img) => handleUpdate('characterImage', img)}
+                                />
+                            </div>
+                        </Section>
+
+                        <Section title="Recursos">
+                            <ResourceBars 
+                                ficha={currentFicha} 
+                                onUpdate={handleBulkUpdate} 
+                                isGmMode={isGmMode}
+                                onGmUpdate={updateGmAdjustment}
+                            />
+                        </Section>
+
+                        <Section title="Atributos">
+                            <Attributes 
+                                ficha={currentFicha}
+                                onBulkUpdate={handleBulkUpdate}
+                                selectedAttribute={selectedAttribute}
+                                setSelectedAttribute={setSelectedAttribute}
+                                isGmMode={isGmMode}
+                                onGmUpdate={updateGmAdjustment}
+                            />
+                        </Section>
+                        
+                        <Section title="Combate">
+                            <Combat 
+                                ficha={currentFicha} 
+                                onUpdate={handleUpdate} 
+                                onRecalculate={calcularAtributos} 
+                                isGmMode={isGmMode}
+                                onGmUpdate={updateGmAdjustment}
+                            />
+                        </Section>
+
+                        <Section title="Inventário">
+                            <Inventory ficha={currentFicha} onUpdate={handleUpdate as any} onRecalculate={calcularAtributos}/>
+                        </Section>
+
+                        <Section title="Habilidades">
+                            <Skills ficha={currentFicha} onUpdate={handleBulkUpdate} />
+                        </Section>
+
+                        <Section title="Vantagens e Desvantagens">
+                            <div className="space-y-4">
+                                <div>
+                                    <h3 className="font-bold" style={{ color: 'var(--accent-color)' }}>Vantagens</h3>
+                                    <div className="p-2 bg-stone-800 rounded-md min-h-[4rem] space-y-1" style={componentStyle}>
+                                        {currentFicha.vantagens.length > 0 ? (
+                                            currentFicha.vantagens.map(v => 
+                                                <div key={v} className="text-sm bg-stone-900/50 p-1 rounded" style={componentStyle}>
+                                                    <span>{v}</span>
+                                                </div>
+                                            )
+                                        ) : <p className="text-sm opacity-70 italic">Nenhuma vantagem selecionada.</p>}
+                                    </div>
+                                </div>
+                                <div>
+                                    <h3 className="font-bold text-red-500">Desvantagens</h3>
+                                    <div className="p-2 bg-stone-800 rounded-md min-h-[4rem] space-y-1" style={componentStyle}>
+                                        {currentFicha.desvantagens.length > 0 ? (
+                                            currentFicha.desvantagens.map(d => 
+                                                <div key={d} className="text-sm bg-stone-900/50 p-1 rounded" style={componentStyle}>
+                                                    <span>{d}</span>
+                                                </div>
+                                            )
+                                        ) : <p className="text-sm opacity-70 italic">Nenhuma desvantagem selecionada.</p>}
+                                    </div>
+                                </div>
+                                <div className="grid grid-cols-2 gap-2">
+                                    <button onClick={() => setVantagensPanelOpen(true)} className="py-2 px-4 bg-amber-800 hover:bg-amber-700 rounded-md transition text-white">Gerenciar</button>
+                                    <button onClick={openExclusionModal} className="py-2 px-4 bg-red-900 hover:bg-red-800 rounded-md transition text-white">Excluir...</button>
+                                </div>
+                            </div>
+                        </Section>
+
+                        <Section title="Raça e Classe">
+                            <div className="space-y-4">
+                                <div>
+                                    <label className="font-bold" style={{ color: 'var(--accent-color)' }}>Raça</label>
+                                    <div className="p-3 bg-stone-800 rounded-md min-h-[4rem]" style={componentStyle}>
+                                        {selectedRacaData ? (
+                                            <>
+                                                <h4 className="font-bold text-lg">{selectedRacaData.nome.split(' (')[0]}</h4>
+                                                <p className="text-sm opacity-80 mt-1">{selectedRacaData.descricao}</p>
+                                            </>
+                                        ) : <p className="text-sm opacity-70 italic">Nenhuma raça selecionada.</p>}
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-2 mt-2">
+                                         <button onClick={() => setRacasPanelOpen(true)} className="py-2 px-4 bg-amber-800 hover:bg-amber-700 rounded-md transition text-white">Gerenciar</button>
+                                         <button onClick={openExclusionModal} className="py-2 px-4 bg-red-900 hover:bg-red-800 rounded-md transition text-white" disabled={!currentFicha.racaSelecionada}>Excluir...</button>
+                                    </div>
+                                </div>
+                                <div>
+                                    <label className="font-bold block mb-2" style={{ color: 'var(--accent-color)' }}>Classe</label>
+                                    <input 
+                                        type="text"
+                                        placeholder="Nome da Classe"
+                                        value={currentFicha.classeNome || ''}
+                                        onChange={e => handleUpdate('classeNome', e.target.value)}
+                                        className="w-full p-2 bg-stone-800 border border-stone-600 rounded-md mb-2"
+                                        style={componentStyle}
+                                    />
+                                    <textarea
+                                        placeholder="Descrição da Classe"
+                                        value={currentFicha.classeDescricao || ''}
+                                        onChange={e => handleUpdate('classeDescricao', e.target.value)}
+                                        className="w-full p-2 bg-stone-800 border border-stone-600 rounded-md h-24 resize-none"
+                                        style={componentStyle}
+                                    />
+                                </div>
+                            </div>
+                        </Section>
+
+                        <Section title="Locomoção">
+                            <Locomotion 
+                                ficha={currentFicha}
+                                selectedAttribute={selectedAttribute}
+                                setSelectedAttribute={setSelectedAttribute}
+                            />
+                        </Section>
+                        
+                        <Section title="Status">
+                             <Vitals 
+                                ficha={currentFicha} 
+                                onBulkUpdate={handleBulkUpdate} 
+                                pontosVantagemDisponiveis={getPontosVantagem()}
+                                isGmMode={isGmMode}
+                                onGmUpdate={updateGmAdjustment}
+                            />
+                        </Section>
+
+                        <Section title="Utilitários">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                               <button onClick={() => setNotesModalOpen(true)} className="py-2 px-4 bg-stone-700 hover:bg-stone-600 rounded-md transition-colors text-white">
+                                    Anotações
+                               </button>
+                               <button onClick={() => setHistoryModalOpen(true)} className="py-2 px-4 bg-stone-700 hover:bg-stone-600 rounded-md transition-colors text-white">
+                                    Histórico
+                               </button>
+                            </div>
+                        </Section>
+                        <div className="space-y-4 pt-4">
+                            <Actions 
+                                onResetPontos={resetPontos}
+                                onRecomecar={recomecarFicha}
+                                onRequestDelete={() => setConfirmDeleteOpen(true)}
+                            />
+
+                            <div className="flex justify-center items-center gap-4 pt-4">
+                                <button onClick={() => handleUpdate('darkMode', false)} title="Modo Claro" className="p-2 w-12 h-12 text-2xl bg-yellow-400 text-black rounded-full">☀️</button>
+                                <button onClick={() => setCustomizationOpen(true)} className="py-2 px-6 bg-purple-800 hover:bg-purple-700 rounded-md transition-colors text-lg text-white">🎨 Customizar</button>
+                                <button onClick={() => handleUpdate('darkMode', true)} title="Modo Escuro" className="p-2 w-12 h-12 text-2xl bg-indigo-900 text-white rounded-full">🌙</button>
                             </div>
                         </div>
-                    </Section>
-
-                    <Section title="Locomoção">
-                        <Locomotion 
-                            ficha={currentFicha}
-                            selectedAttribute={selectedAttribute}
-                            setSelectedAttribute={setSelectedAttribute}
-                        />
-                    </Section>
-                    
-                    <Section title="Status">
-                         <Vitals 
-                            ficha={currentFicha} 
-                            onBulkUpdate={handleBulkUpdate} 
-                            pontosVantagemDisponiveis={getPontosVantagem()}
-                            isGmMode={isGmMode}
-                            onGmUpdate={updateGmAdjustment}
-                        />
-                    </Section>
-
-                    <Section title="Utilitários">
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                           <button onClick={() => setNotesModalOpen(true)} className="py-2 px-4 bg-stone-700 hover:bg-stone-600 rounded-md transition-colors text-white">
-                                Anotações
-                           </button>
-                           <button onClick={() => setHistoryModalOpen(true)} className="py-2 px-4 bg-stone-700 hover:bg-stone-600 rounded-md transition-colors text-white">
-                                Histórico
-                           </button>
-                        </div>
-                    </Section>
-
-                    <Actions 
-                        onResetPontos={resetPontos}
-                        onRecomecar={recomecarFicha}
-                        onRequestDelete={() => setConfirmDeleteOpen(true)}
-                    />
-
-                    <div className="flex justify-center items-center gap-4 pt-4">
-                        <button onClick={() => handleUpdate('darkMode', false)} title="Modo Claro" className="p-2 w-12 h-12 text-2xl bg-yellow-400 text-black rounded-full">☀️</button>
-                        <button onClick={() => setCustomizationOpen(true)} className="py-2 px-6 bg-purple-800 hover:bg-purple-700 rounded-md transition-colors text-lg text-white">🎨 Customizar</button>
-                        <button onClick={() => handleUpdate('darkMode', true)} title="Modo Escuro" className="p-2 w-12 h-12 text-2xl bg-indigo-900 text-white rounded-full">🌙</button>
+                    </div>
+                     {/* ======== MOBILE TAB VIEW ======== */}
+                    <div className="sm:hidden space-y-4 pb-20">
+                        {activeTab === 'principal' && (
+                            <div className="space-y-4">
+                                <Vitals ficha={currentFicha} onBulkUpdate={handleBulkUpdate} pontosVantagemDisponiveis={getPontosVantagem()} isGmMode={isGmMode} onGmUpdate={updateGmAdjustment} />
+                                <ResourceBars ficha={currentFicha} onUpdate={handleBulkUpdate} isGmMode={isGmMode} onGmUpdate={updateGmAdjustment} />
+                                <CompactDerivedStats ficha={currentFicha} />
+                                <Locomotion ficha={currentFicha} selectedAttribute={selectedAttribute} setSelectedAttribute={setSelectedAttribute} />
+                            </div>
+                        )}
+                        {activeTab === 'atributos' && (
+                            <Attributes ficha={currentFicha} onBulkUpdate={handleBulkUpdate} selectedAttribute={selectedAttribute} setSelectedAttribute={setSelectedAttribute} isGmMode={isGmMode} onGmUpdate={updateGmAdjustment} />
+                        )}
+                        {activeTab === 'inventario' && (
+                            <div className="space-y-4">
+                                <Combat ficha={currentFicha} onUpdate={handleUpdate} onRecalculate={calcularAtributos} isGmMode={isGmMode} onGmUpdate={updateGmAdjustment} />
+                                <Inventory ficha={currentFicha} onUpdate={handleUpdate as any} onRecalculate={calcularAtributos} />
+                            </div>
+                        )}
+                        {activeTab === 'habilidades' && (
+                            <Skills ficha={currentFicha} onUpdate={handleBulkUpdate} />
+                        )}
+                        {activeTab === 'perfil' && (
+                            <div className="space-y-4">
+                                <div className="flex flex-col gap-4 items-center">
+                                    <textarea id="descricao-personagem-mobile" placeholder="Descrição do seu personagem" value={currentFicha.descricaoPersonagem} onChange={(e) => handleUpdate('descricaoPersonagem', e.target.value)} className="w-full p-2 bg-stone-800 border border-stone-600 rounded-md h-24 resize-none" style={componentStyle} />
+                                    <CharacterImage image={currentFicha.characterImage} onUpdate={(img) => handleUpdate('characterImage', img)} />
+                                </div>
+                                <div className="p-3 rounded-lg" style={componentStyle}>
+                                    <h3 className="font-bold mb-2" style={{ color: 'var(--accent-color)' }}>Vantagens</h3>
+                                    {currentFicha.vantagens.length > 0 ? currentFicha.vantagens.map(v => <div key={v} className="text-sm"><span>{v}</span></div>) : <p className="text-sm opacity-70 italic">Nenhuma.</p>}
+                                    <h3 className="font-bold text-red-500 mt-2 mb-1">Desvantagens</h3>
+                                    {currentFicha.desvantagens.length > 0 ? currentFicha.desvantagens.map(d => <div key={d} className="text-sm"><span>{d}</span></div>) : <p className="text-sm opacity-70 italic">Nenhuma.</p>}
+                                    <button onClick={() => setVantagensPanelOpen(true)} className="w-full mt-2 py-2 px-4 bg-amber-800 hover:bg-amber-700 rounded-md transition text-white text-sm">Gerenciar</button>
+                                </div>
+                                <div className="p-3 rounded-lg" style={componentStyle}>
+                                     <h3 className="font-bold" style={{ color: 'var(--accent-color)' }}>Raça</h3>
+                                     {selectedRacaData ? <p className="text-sm opacity-80 mt-1">{selectedRacaData.nome.split(' (')[0]}: {selectedRacaData.descricao}</p> : <p className="text-sm opacity-70 italic">Nenhuma.</p>}
+                                     <button onClick={() => setRacasPanelOpen(true)} className="w-full mt-2 py-2 px-4 bg-amber-800 hover:bg-amber-700 rounded-md transition text-white text-sm">Gerenciar</button>
+                                </div>
+                                <div className="grid grid-cols-2 gap-2">
+                                    <button onClick={() => setNotesModalOpen(true)} className="py-2 px-4 bg-stone-700 hover:bg-stone-600 rounded-md text-white">Anotações</button>
+                                    <button onClick={() => setHistoryModalOpen(true)} className="py-2 px-4 bg-stone-700 hover:bg-stone-600 rounded-md text-white">Histórico</button>
+                                </div>
+                                <Actions onResetPontos={resetPontos} onRecomecar={recomecarFicha} onRequestDelete={() => setConfirmDeleteOpen(true)} />
+                                <div className="flex justify-center items-center gap-4 pt-4">
+                                    <button onClick={() => handleUpdate('darkMode', false)} title="Modo Claro" className="p-2 w-12 h-12 text-2xl bg-yellow-400 text-black rounded-full">☀️</button>
+                                    <button onClick={() => setCustomizationOpen(true)} className="py-2 px-4 bg-purple-800 hover:bg-purple-700 rounded-md text-white">🎨</button>
+                                    <button onClick={() => handleUpdate('darkMode', true)} title="Modo Escuro" className="p-2 w-12 h-12 text-2xl bg-indigo-900 text-white rounded-full">🌙</button>
+                                </div>
+                            </div>
+                        )}
                     </div>
 
                 </main>
             </div>
             
+            <TabBar activeTab={activeTab} onTabClick={setActiveTab} />
             <DiceRoller 
                 ficha={currentFicha}
                 onRoll={rollDice}
