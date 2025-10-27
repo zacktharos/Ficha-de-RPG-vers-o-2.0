@@ -2452,7 +2452,7 @@ const App: React.FC = () => {
             <div className="flex items-center justify-center min-h-screen bg-stone-800 text-white p-4">
                 <div className="text-center">
                     <h1 className="text-3xl font-medieval mb-4">Carregando Ficha...</h1>
-                    <p>Se a ficha não carregar, por favor, crie uma nova.</p>
+                    <p>Se a ficha não carregar, por favor, tente criar uma nova.</p>
                      <button
                         onClick={() => setNewFichaModalOpen(true)}
                         className="mt-4 px-4 py-2 bg-amber-700 text-white rounded-md hover:bg-amber-600 transition-colors"
