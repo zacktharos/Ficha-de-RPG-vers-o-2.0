@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import ReactDOM from 'react-dom/client';
 
 // ==========================================================================================
@@ -425,7 +425,7 @@ const createDefaultFicha = (id: string, nomeFicha: string): Ficha => ({
     accentColor: '#f59e0b',
 });
 
-const useCharacterSheet = () => {
+const useCharacterSheet = (onLevelUp?: () => void) => {
     const [fichas, setFichas] = useState<Record<string, Ficha>>({});
     const [currentFichaId, setCurrentFichaId] = useState<string>(FICHA_MATRIZ_ID);
     const [diceHistory, setDiceHistory] = useState<DiceRoll[]>([]);
@@ -445,6 +445,8 @@ const useCharacterSheet = () => {
         setFichas(prevFichas => {
             const oldFicha = prevFichas[id];
             if (!oldFicha) return prevFichas;
+            
+            const oldLevel = oldFicha.nivel;
 
             let newFicha = { ...oldFicha, ...updatedFichaData };
             
@@ -457,11 +459,15 @@ const useCharacterSheet = () => {
             
             const finalFicha = calcularAtributos(newFicha);
             
+            if (finalFicha.nivel > oldLevel && onLevelUp) {
+                onLevelUp();
+            }
+
             const updatedFichas = { ...prevFichas, [id]: finalFicha };
             saveFichasToStorage(updatedFichas);
             return updatedFichas;
         });
-    }, [saveFichasToStorage]);
+    }, [saveFichasToStorage, onLevelUp]);
 
     useEffect(() => {
         let loadedFichas: Record<string, Ficha> = {};
@@ -1780,12 +1786,29 @@ interface HeaderProps {
     handleUpdate: (key: 'nomePersonagem', value: string) => void;
     onNewFicha: () => void;
     onOpenGenerator: () => void;
+    onExport: () => void;
+    onImport: () => void;
     isGmMode: boolean;
     onToggleGmMode: () => void;
 }
 
-const Header: React.FC<HeaderProps> = ({ fichas, currentFichaId, switchFicha, nomePersonagem, handleUpdate, onNewFicha, onOpenGenerator, isGmMode, onToggleGmMode }) => {
+const Header: React.FC<HeaderProps> = ({ fichas, currentFichaId, switchFicha, nomePersonagem, handleUpdate, onNewFicha, onOpenGenerator, onExport, onImport, isGmMode, onToggleGmMode }) => {
+    const [isImportExportMenuOpen, setImportExportMenuOpen] = useState(false);
+    const menuRef = useRef<HTMLDivElement>(null);
     const componentStyle = { backgroundColor: 'var(--component-bg-color)', color: 'var(--text-color)' };
+    
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+                setImportExportMenuOpen(false);
+            }
+        };
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => {
+            document.removeEventListener("mousedown", handleClickOutside);
+        };
+    }, [menuRef]);
+
     return (
         <header className="bg-stone-900 p-4 border-b border-stone-700" style={{backgroundColor: 'rgba(0,0,0,0.2)', borderColor: 'var(--border-color)'}}>
             <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
@@ -1828,6 +1851,33 @@ const Header: React.FC<HeaderProps> = ({ fichas, currentFichaId, switchFicha, no
                     >
                         🎭
                     </button>
+
+                    <div className="relative" ref={menuRef}>
+                        <button
+                            onClick={() => setImportExportMenuOpen(!isImportExportMenuOpen)}
+                            className="font-bold py-2 px-4 rounded-md transition-colors text-2xl bg-stone-700 hover:bg-stone-600"
+                            title="Importar/Exportar"
+                        >
+                            💾
+                        </button>
+                        {isImportExportMenuOpen && (
+                            <div className="absolute right-0 mt-2 w-48 bg-stone-800 rounded-md shadow-lg z-50 border border-stone-600" style={{...componentStyle, backgroundColor: 'var(--section-bg-color)'}}>
+                                <ul className="py-1">
+                                    <li>
+                                        <button onClick={() => { onImport(); setImportExportMenuOpen(false); }} className="w-full text-left px-4 py-2 text-sm hover:bg-stone-700 flex items-center gap-2" style={{color: 'var(--text-color)'}}>
+                                            📥 <span>Importar Ficha</span>
+                                        </button>
+                                    </li>
+                                    <li>
+                                        <button onClick={() => { onExport(); setImportExportMenuOpen(false); }} className="w-full text-left px-4 py-2 text-sm hover:bg-stone-700 flex items-center gap-2" style={{color: 'var(--text-color)'}}>
+                                            📤 <span>Exportar Ficha</span>
+                                        </button>
+                                    </li>
+                                </ul>
+                            </div>
+                        )}
+                    </div>
+                    
                     <button
                         onClick={onToggleGmMode}
                         className={`font-bold py-2 px-4 rounded-md transition-colors text-2xl ${isGmMode ? 'bg-purple-600 hover:bg-purple-500' : 'bg-stone-700 hover:bg-stone-600'}`}
@@ -3042,6 +3092,15 @@ const GeneratorModal: React.FC<GeneratorModalProps> = ({ isOpen, onClose, onOpti
 // ==========================================================================================
 
 const App: React.FC = () => {
+    const [isLeveledUp, setIsLeveledUp] = useState(false);
+    
+    const handleLevelUp = useCallback(() => {
+        setIsLeveledUp(true);
+        setTimeout(() => {
+            setIsLeveledUp(false);
+        }, 10000); // 10 seconds
+    }, []);
+
     const {
         fichas,
         currentFicha,
@@ -3068,11 +3127,12 @@ const App: React.FC = () => {
         isGmMode,
         toggleGmMode,
         updateGmAdjustment,
-    } = useCharacterSheet();
+    } = useCharacterSheet(handleLevelUp);
 
     useDynamicStyles(currentFicha);
     
     const [activeTab, setActiveTab] = useState('principal');
+    const importInputRef = useRef<HTMLInputElement>(null);
 
     const [isVantagensPanelOpen, setVantagensPanelOpen] = useState(false);
     const [isRacasPanelOpen, setRacasPanelOpen] = useState(false);
@@ -3137,6 +3197,68 @@ const App: React.FC = () => {
         const npcData = generateNpcData(level, archetype);
         createCustomFicha(nome, npcData);
     }, [createCustomFicha]);
+
+    const handleExport = useCallback(() => {
+        if (!currentFicha) {
+            alert("Nenhuma ficha selecionada para exportar.");
+            return;
+        }
+
+        const fichaData = JSON.stringify(currentFicha, null, 2);
+        const blob = new Blob([fichaData], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        const fileName = currentFicha.nomePersonagem?.replace(/[^a-z0-9]/gi, '_').toLowerCase() || 'ficha_rpg';
+        a.download = `${fileName}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
+    }, [currentFicha]);
+
+    const handleImportClick = () => {
+        importInputRef.current?.click();
+    };
+
+    const handleFileImport = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                const text = e.target?.result;
+                if (typeof text !== 'string') throw new Error("File content is not readable text.");
+
+                const importedData: Partial<Ficha> = JSON.parse(text);
+
+                if (!importedData.nomePersonagem && !importedData.nomeFicha) {
+                    throw new Error("O arquivo não parece ser uma ficha válida (faltando nome do personagem/ficha).");
+                }
+                
+                const newFichaName = importedData.nomeFicha || importedData.nomePersonagem || `Importado ${new Date().toLocaleTimeString()}`;
+                
+                delete importedData.id;
+
+                createCustomFicha(newFichaName, importedData);
+                alert(`Ficha "${newFichaName}" importada com sucesso!`);
+
+            } catch (error) {
+                console.error("Erro ao importar ficha:", error);
+                alert(`Falha ao importar a ficha. Verifique se o arquivo é um JSON válido. Erro: ${error instanceof Error ? error.message : 'Desconhecido'}`);
+            } finally {
+                if (event.target) {
+                    event.target.value = '';
+                }
+            }
+        };
+        reader.onerror = () => {
+             alert(`Erro ao ler o arquivo: ${reader.error}`);
+        };
+        reader.readAsText(file);
+    };
     
     if (!currentFicha) {
         return (
@@ -3175,10 +3297,30 @@ const App: React.FC = () => {
     
     const appClasses = `${currentFicha.darkMode ? 'dark-mode' : 'light-mode'} ${currentFicha.theme}`;
     const componentStyle = { backgroundColor: 'var(--component-bg-color)' };
+    const glowStyles = `
+      @keyframes neon-blue-glow-animation {
+        from { box-shadow: 0 0 10px #00aaff, 0 0 20px #00aaff, inset 0 0 10px 2px #00aaff, var(--sheet-shadow); }
+        to { box-shadow: 0 0 20px #00f, 0 0 30px #00f, inset 0 0 20px 4px #00f, var(--sheet-shadow); }
+      }
+      .level-up-glow {
+        animation: neon-blue-glow-animation 1.5s ease-in-out infinite alternate;
+        --border-color: #00aaff !important;
+        --accent-color: #00ffff !important;
+        --text-color: #e6f7ff !important;
+      }
+    `;
 
     return (
         <div className={appClasses}>
-            <div id="character-sheet-container" className="max-w-2xl mx-auto sm:rounded-xl shadow-2xl shadow-black/50 overflow-hidden sm:my-4" style={{
+            <style>{glowStyles}</style>
+            <input
+                type="file"
+                ref={importInputRef}
+                onChange={handleFileImport}
+                accept=".json,application/json"
+                className="hidden"
+            />
+            <div id="character-sheet-container" className={`max-w-2xl mx-auto sm:rounded-xl shadow-2xl shadow-black/50 overflow-hidden sm:my-4 transition-all duration-300 ${isLeveledUp ? 'level-up-glow' : ''}`} style={{
                 backgroundColor: 'var(--sheet-bg-color)',
                 opacity: currentFicha.sheetOpacity / 100,
                 borderWidth: `var(--border-width)`,
@@ -3194,6 +3336,8 @@ const App: React.FC = () => {
                     handleUpdate={handleUpdate}
                     onNewFicha={() => setNewFichaModalOpen(true)}
                     onOpenGenerator={() => setGeneratorOpen(true)}
+                    onExport={handleExport}
+                    onImport={handleImportClick}
                     isGmMode={isGmMode}
                     onToggleGmMode={toggleGmMode}
                 />
