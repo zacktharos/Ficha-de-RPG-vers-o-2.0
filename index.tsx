@@ -300,32 +300,31 @@ function hexToRgb(hex: string): { r: number; g: number; b: number } | null {
         : null;
 }
 
-const clearDynamicStyles = (root: HTMLElement) => {
-    document.body.style.fontFamily = '';
-    document.body.style.backgroundColor = '';
-    document.body.style.backgroundImage = '';
-    document.body.style.backgroundSize = '';
-    document.body.style.backgroundAttachment = '';
-
-    root.style.setProperty('--sheet-bg-color', '');
-    root.style.setProperty('--section-bg-color', '');
-    root.style.setProperty('--border-color', '');
-    root.style.setProperty('--border-style', '');
-    root.style.setProperty('--border-width', '');
-    root.style.setProperty('--sheet-shadow', '');
-    root.style.setProperty('--text-color', '');
-    root.style.setProperty('--accent-color', '');
-};
-
 const useDynamicStyles = (ficha: Ficha | null) => {
     useEffect(() => {
         if (!ficha) return;
 
-        const root = document.documentElement;
+        const root = document.documentElement as HTMLElement;
 
-        if (ficha.theme !== 'theme-medieval' || ficha.darkMode) {
-            clearDynamicStyles(root);
+        if (ficha.darkMode) {
+            // Aplicar estilos do modo escuro, sobrepondo qualquer customização
+            document.body.style.fontFamily = "'Inter', sans-serif";
+            document.body.style.backgroundColor = '#121212';
+            document.body.style.backgroundImage = 'none';
+            document.body.style.backgroundSize = 'cover';
+            document.body.style.backgroundAttachment = 'fixed';
+
+            root.style.setProperty('--sheet-bg-color', 'rgba(20, 20, 20, 0.95)');
+            root.style.setProperty('--section-bg-color', 'rgba(30, 30, 30, 0.9)');
+            root.style.setProperty('--component-bg-color', '#2d2d2d');
+            root.style.setProperty('--border-color', '#555');
+            root.style.setProperty('--border-style', 'solid');
+            root.style.setProperty('--border-width', `2px`);
+            root.style.setProperty('--sheet-shadow', 'inset 0 0 10px 2px #000000');
+            root.style.setProperty('--text-color', '#f1f1f1');
+            root.style.setProperty('--accent-color', '#f59e0b');
         } else {
+            // Aplicar o tema customizado pelo usuário (ou o padrão)
             document.body.style.fontFamily = ficha.fontFamily || "'Inter', sans-serif";
             document.body.style.backgroundColor = ficha.backgroundColor || '#f0e6d2';
             if (ficha.backgroundImage) {
@@ -361,11 +360,11 @@ const useDynamicStyles = (ficha: Ficha | null) => {
             } else {
                 root.style.setProperty('--sheet-shadow', 'transparent 0 0 0 0 inset');
             }
+            
+            root.style.setProperty('--component-bg-color', ficha.componentBackgroundColor || '');
+            root.style.setProperty('--text-color', ficha.textColor || '');
+            root.style.setProperty('--accent-color', ficha.accentColor || '');
         }
-        
-        root.style.setProperty('--component-bg-color', ficha.componentBackgroundColor || '');
-        root.style.setProperty('--text-color', ficha.textColor || '');
-        root.style.setProperty('--accent-color', ficha.accentColor || '');
 
     }, [ficha]);
 };
@@ -1403,7 +1402,7 @@ const DiceRoller: React.FC<DiceRollerProps> = ({ onRoll, selectedAttribute, setS
             <button 
                 onClick={() => setIsPanelOpen(true)}
                 className="fixed bottom-4 left-1/2 -translate-x-1/2 z-30 w-14 h-14 bg-stone-800 border-2 rounded-full shadow-lg flex items-center justify-center hover:bg-stone-700 transition-all"
-                style={{ borderColor: 'var(--accent-color)', color: 'var(--accent-color)' }}
+                style={{ borderColor: 'var(--accent-color)', color: 'var(--accent-color)', backgroundColor: ficha.darkMode ? '#2d2d2d' : '' }}
                 title="Rolar Dados"
             >
                 <DiceIcon className="w-8 h-8" />
@@ -1412,15 +1411,15 @@ const DiceRoller: React.FC<DiceRollerProps> = ({ onRoll, selectedAttribute, setS
     }
     
     const diceStyle: React.CSSProperties = {
-        backgroundColor: ficha.diceColor || '#a0522d',
-        color: ficha.diceNumberColor || '#ffffff',
+        backgroundColor: ficha.darkMode ? '#444' : (ficha.diceColor || '#a0522d'),
+        color: ficha.darkMode ? '#fff' : (ficha.diceNumberColor || '#ffffff'),
         backgroundImage: ficha.diceTexture ? `url(${ficha.diceTexture})` : 'none',
         backgroundSize: 'cover',
         backgroundPosition: 'center',
     };
 
     return (
-        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-40 bg-stone-900/90 backdrop-blur-md p-3 rounded-lg shadow-2xl border border-stone-700 w-64 flex flex-col gap-3">
+        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-40 bg-stone-900/90 backdrop-blur-md p-3 rounded-lg shadow-2xl border border-stone-700 w-64 flex flex-col gap-3" style={{ backgroundColor: ficha.darkMode ? 'rgba(20,20,20,0.9)' : ''}}>
             <div className="flex justify-between items-center">
                 <h3 className="font-medieval">Rolagem</h3>
                 <button onClick={() => setIsPanelOpen(false)} className="text-2xl opacity-70 hover:opacity-100">&times;</button>
@@ -1602,7 +1601,7 @@ interface HeaderProps {
 const Header: React.FC<HeaderProps> = ({ fichas, currentFichaId, switchFicha, nomePersonagem, handleUpdate, onNewFicha, isGmMode, onToggleGmMode }) => {
     const componentStyle = { backgroundColor: 'var(--component-bg-color)', color: 'var(--text-color)' };
     return (
-        <header className="bg-stone-900 p-4 border-b border-stone-700">
+        <header className="bg-stone-900 p-4 border-b border-stone-700" style={{backgroundColor: 'rgba(0,0,0,0.2)', borderColor: 'var(--border-color)'}}>
             <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
                  <input
                     type="text"
