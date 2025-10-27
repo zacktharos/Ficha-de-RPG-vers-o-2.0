@@ -1427,11 +1427,11 @@ const DiceRoller: React.FC<DiceRollerProps> = ({ onRoll, selectedAttribute, setS
         return (
             <button 
                 onClick={() => setIsPanelOpen(true)}
-                className="fixed bottom-4 right-4 sm:bottom-4 sm:left-1/2 sm:-translate-x-1/2 z-30 w-14 h-14 bg-stone-800 border-2 rounded-full shadow-lg flex items-center justify-center hover:bg-stone-700 transition-all"
+                className="fixed bottom-8 left-1/2 -translate-x-1/2 sm:bottom-4 z-30 w-16 h-16 bg-stone-800 border-2 rounded-full shadow-lg flex items-center justify-center hover:bg-stone-700 transition-all"
                 style={{ borderColor: 'var(--accent-color)', color: 'var(--accent-color)', backgroundColor: ficha.darkMode ? '#2d2d2d' : '' }}
                 title="Rolar Dados"
             >
-                <DiceIcon className="w-8 h-8" />
+                <DiceIcon className="w-9 h-9" />
             </button>
         );
     }
@@ -1869,6 +1869,39 @@ const Locomotion: React.FC<LocomotionProps> = ({ ficha, selectedAttribute, setSe
                 selectedAttribute={selectedAttribute}
                 setSelectedAttribute={setSelectedAttribute}
             />
+        </div>
+    );
+};
+
+// --- MobileDock.tsx ---
+interface MobileDockProps {
+    isInventoryActive: boolean;
+}
+
+const MobileDock: React.FC<MobileDockProps> = ({ isInventoryActive }) => {
+    const activeColor = 'var(--accent-color)';
+    const inactiveColor = 'var(--text-color)';
+    const activeOpacity = 1;
+    const inactiveOpacity = 0.7;
+
+    return (
+        <div 
+            className="fixed bottom-0 left-1/2 w-24 h-12 sm:hidden flex justify-center items-end pb-1 transition-colors duration-200"
+            style={{
+                backgroundColor: 'var(--sheet-bg-color)',
+                borderTopLeftRadius: '999px',
+                borderTopRightRadius: '999px',
+                border: 'var(--border-width) solid var(--border-color)',
+                borderBottom: 'none',
+                transform: 'translateX(-50%) translateY(calc(var(--border-width) * -1))',
+                pointerEvents: 'none',
+                borderStyle: 'var(--border-style)',
+                zIndex: 21,
+                color: isInventoryActive ? activeColor : inactiveColor,
+                opacity: isInventoryActive ? activeOpacity : inactiveOpacity,
+            }}
+        >
+             <span className="text-2xl" style={{ transform: 'translateY(4px)' }}>🎒</span>
         </div>
     );
 };
@@ -2344,16 +2377,27 @@ const TabBar: React.FC<TabBarProps> = ({ activeTab, onTabClick }) => {
                     key={tab.id}
                     onClick={() => onTabClick(tab.id)}
                     className={`flex flex-col items-center justify-center pt-2 pb-1 w-full text-xs transition-colors duration-200`}
-                    style={{ color: activeTab === tab.id ? 'var(--accent-color)' : 'var(--text-color)', opacity: activeTab !== tab.id ? 0.7 : 1 }}
+                    style={{ 
+                        color: activeTab === tab.id ? 'var(--accent-color)' : 'var(--text-color)', 
+                        opacity: (activeTab !== tab.id && tab.id !== 'inventario') ? 0.7 : 1,
+                    }}
+                    aria-label={tab.label}
                 >
-                    <span className="text-2xl">{tab.icon}</span>
-                    <span className="mt-1">{tab.label}</span>
-                    {activeTab === tab.id && <div className="w-10 h-1 rounded-full mt-1" style={{ backgroundColor: 'var(--accent-color)' }}></div>}
+                    {tab.id !== 'inventario' ? (
+                        <>
+                            <span className="text-2xl">{tab.icon}</span>
+                            <span className="mt-1">{tab.label}</span>
+                            {activeTab === tab.id && <div className="w-10 h-1 rounded-full mt-1" style={{ backgroundColor: 'var(--accent-color)' }}></div>}
+                        </>
+                    ) : (
+                        <div className="w-full h-[52px]">&nbsp;</div>
+                    )}
                 </button>
             ))}
         </div>
     );
 };
+
 
 // --- VantagensDesvantagensPanel.tsx ---
 interface VantagensDesvantagensPanelProps {
@@ -3040,6 +3084,7 @@ const App: React.FC = () => {
                 </main>
             </div>
             
+            <MobileDock isInventoryActive={activeTab === 'inventario'} />
             <TabBar activeTab={activeTab} onTabClick={setActiveTab} />
             <DiceRoller 
                 ficha={currentFicha}
