@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import ReactDOM from 'react-dom/client';
 
@@ -594,6 +595,36 @@ const useCharacterSheet = () => {
         saveFichasToStorage(newFichas);
         switchFicha(id);
     }, [fichas, saveFichasToStorage, switchFicha]);
+
+    const createCustomFicha = useCallback((nomeFicha: string, customData: Partial<Ficha>) => {
+        const id = `ficha_${Date.now()}`;
+        const newFichaTemplate = createDefaultFicha(id, nomeFicha);
+        
+        const nivelInfo = nivelData.find(n => n.nivel === customData.nivel) || nivelData[0];
+        const baseData = {
+            ...newFichaTemplate,
+            pontosHabilidadeTotais: nivelInfo.pd,
+            pontosVantagemTotais: nivelInfo.ph,
+            vidaAtual: 0, 
+            magiaAtual: 0,
+            vigorAtual: 0,
+        };
+
+        const newFicha = { ...baseData, ...customData };
+        
+        const finalFichaWithCalculations = calcularAtributos(newFicha);
+        
+        finalFichaWithCalculations.vidaAtual = finalFichaWithCalculations.vidaTotal;
+        finalFichaWithCalculations.magiaAtual = finalFichaWithCalculations.magiaTotal;
+        finalFichaWithCalculations.vigorAtual = finalFichaWithCalculations.vigorTotal;
+
+        const finalFicha = calcularAtributos(finalFichaWithCalculations);
+
+        const newFichas = { ...fichas, [id]: finalFicha };
+        setFichas(newFichas);
+        saveFichasToStorage(newFichas);
+        switchFicha(id);
+    }, [fichas, saveFichasToStorage, switchFicha]);
     
     const deleteFicha = useCallback(() => {
         if (currentFichaId === FICHA_MATRIZ_ID) {
@@ -737,6 +768,7 @@ const useCharacterSheet = () => {
         switchFicha,
         updateFicha,
         createFicha,
+        createCustomFicha,
         deleteFicha,
         resetPontos,
         recomecarFicha,
@@ -756,6 +788,133 @@ const useCharacterSheet = () => {
         toggleGmMode,
         updateGmAdjustment,
     };
+};
+
+// ==========================================================================================
+// Conteúdo de: utils/generator.ts
+// ==========================================================================================
+type Atributo = 'forca' | 'destreza' | 'agilidade' | 'constituicao' | 'inteligencia';
+type Arquétipo = 'Mago' | 'Guerreiro (Ataque)' | 'Guerreiro (Tanque)' | 'Ladino' | 'Paladino';
+
+interface ArchetypeConfig {
+    weights: Record<Atributo, number>;
+    multiples?: Partial<Record<Atributo, number>>;
+}
+
+const archetypeConfigs: Record<Arquétipo, ArchetypeConfig> = {
+    'Mago': {
+        weights: { inteligencia: 6, constituicao: 3, agilidade: 2, destreza: 1, forca: 1 },
+        multiples: { destreza: 3, agilidade: 3 }
+    },
+    'Guerreiro (Ataque)': {
+        weights: { forca: 5, destreza: 4, constituicao: 3, agilidade: 2, inteligencia: 1 },
+        multiples: { destreza: 3, agilidade: 3 }
+    },
+    'Guerreiro (Tanque)': {
+        weights: { constituicao: 5, forca: 4, destreza: 2, agilidade: 2, inteligencia: 1 },
+        multiples: { destreza: 3, agilidade: 3 }
+    },
+    'Ladino': {
+        weights: { agilidade: 5, destreza: 5, inteligencia: 2, constituicao: 2, forca: 1 },
+        multiples: { destreza: 3, agilidade: 3 }
+    },
+    'Paladino': {
+        weights: { forca: 4, inteligencia: 4, constituicao: 4, destreza: 2, agilidade: 1 },
+        multiples: { destreza: 3, agilidade: 3 }
+    }
+};
+
+const distributePoints = (totalPoints: number, archetype: Arquétipo): Record<Atributo, number> => {
+    const config = archetypeConfigs[archetype];
+    const stats: Record<Atributo, number> = { forca: 0, destreza: 0, agilidade: 0, constituicao: 0, inteligencia: 0 };
+    let pointsPool = totalPoints;
+
+    const totalWeight = Object.values(config.weights).reduce((sum, weight) => sum + weight, 0);
+
+    // Initial distribution based on weights
+    for (const attr of Object.keys(stats) as Atributo[]) {
+        const share = Math.floor((config.weights[attr] / totalWeight) * totalPoints);
+        stats[attr] = share;
+        pointsPool -= share;
+    }
+
+    // Distribute remaining points randomly based on weights
+    while (pointsPool > 0) {
+        let random = Math.random() * totalWeight;
+        for (const attr of Object.keys(stats) as Atributo[]) {
+            random -= config.weights[attr];
+            if (random <= 0) {
+                stats[attr]++;
+                pointsPool--;
+                break;
+            }
+        }
+    }
+
+    // Clean up for multiples
+    if (config.multiples) {
+        let unspentPoints = 0;
+        for (const attr of Object.keys(config.multiples) as Atributo[]) {
+            const multiple = config.multiples[attr]!;
+            const remainder = stats[attr] % multiple;
+            if (remainder > 0) {
+                stats[attr] -= remainder;
+                unspentPoints += remainder;
+            }
+        }
+        // Add unspent points to the highest weight attribute that doesn't have a multiple rule
+        const highestWeightAttr = (Object.keys(config.weights) as Atributo[]).sort((a, b) => config.weights[b] - config.weights[a]).find(a => !config.multiples?.[a]);
+        if (highestWeightAttr) {
+            stats[highestWeightAttr] += unspentPoints;
+        }
+    }
+
+    return stats;
+};
+
+const generateNpcData = (level: number, archetype: Arquétipo): Partial<Ficha> => {
+    const nivelInfo = nivelData.find(n => n.nivel === level) || nivelData[0];
+    const pd = nivelInfo.pd;
+    let ph = nivelInfo.ph;
+
+    const atributos = distributePoints(pd, archetype);
+
+    const data: Partial<Ficha> = {
+        ...atributos,
+        // FIX: The shorthand property 'nivel' was used, but 'nivel' is not in scope. The function parameter is 'level'.
+        nivel: level,
+        experiencia: nivelInfo.xp,
+    };
+
+    const affordableRacas = racasData.filter(r => r.custo <= ph);
+    if (affordableRacas.length > 0) {
+        const raca = affordableRacas[Math.floor(Math.random() * affordableRacas.length)];
+        data.racaSelecionada = raca.nome;
+        ph -= raca.custo;
+    }
+
+    const numDesvantagens = Math.floor(Math.random() * 3); // 0, 1, or 2
+    const shuffledDesvantagens = [...desvantagensData].sort(() => 0.5 - Math.random());
+    data.desvantagens = [];
+    for (let i = 0; i < numDesvantagens && i < shuffledDesvantagens.length; i++) {
+        const desvantagem = shuffledDesvantagens[i];
+        data.desvantagens.push(desvantagem.nome);
+        ph += desvantagem.ganho;
+    }
+
+    data.vantagens = [];
+    let attempts = 0;
+    while (ph > 0 && attempts < 100) {
+        const affordableVantagens = vantagensData.filter(v => v.custo <= ph && v.restricao !== 'inicio');
+        if (affordableVantagens.length === 0) break;
+        
+        const vantagem = affordableVantagens[Math.floor(Math.random() * affordableVantagens.length)];
+        data.vantagens.push(vantagem.nome);
+        ph -= vantagem.custo;
+        attempts++;
+    }
+    
+    return data;
 };
 
 // ==========================================================================================
@@ -1620,11 +1779,12 @@ interface HeaderProps {
     nomePersonagem: string;
     handleUpdate: (key: 'nomePersonagem', value: string) => void;
     onNewFicha: () => void;
+    onOpenGenerator: () => void;
     isGmMode: boolean;
     onToggleGmMode: () => void;
 }
 
-const Header: React.FC<HeaderProps> = ({ fichas, currentFichaId, switchFicha, nomePersonagem, handleUpdate, onNewFicha, isGmMode, onToggleGmMode }) => {
+const Header: React.FC<HeaderProps> = ({ fichas, currentFichaId, switchFicha, nomePersonagem, handleUpdate, onNewFicha, onOpenGenerator, isGmMode, onToggleGmMode }) => {
     const componentStyle = { backgroundColor: 'var(--component-bg-color)', color: 'var(--text-color)' };
     return (
         <header className="bg-stone-900 p-4 border-b border-stone-700" style={{backgroundColor: 'rgba(0,0,0,0.2)', borderColor: 'var(--border-color)'}}>
@@ -1660,6 +1820,13 @@ const Header: React.FC<HeaderProps> = ({ fichas, currentFichaId, switchFicha, no
                         title="Criar Nova Ficha"
                     >
                         +
+                    </button>
+                    <button
+                        onClick={onOpenGenerator}
+                        className="font-bold py-2 px-4 rounded-md transition-colors text-2xl bg-stone-700 hover:bg-stone-600"
+                        title="Gerador e Otimizador"
+                    >
+                        🎭
                     </button>
                     <button
                         onClick={onToggleGmMode}
@@ -2717,6 +2884,158 @@ const CharacterImage: React.FC<CharacterImageProps> = ({ image, onUpdate }) => {
     );
 };
 
+// --- GeneratorModal.tsx ---
+interface GeneratorModalProps {
+    isOpen: boolean;
+    onClose: () => void;
+    onOptimize: (archetype: Arquétipo) => Record<Atributo, number>;
+    onConfirmOptimize: (updates: Record<Atributo, number>) => void;
+    onGenerate: (nome: string, level: number, archetype: Arquétipo) => void;
+    onRequestMasterPassword: (callback: () => void) => void;
+    currentFicha: Ficha;
+}
+
+const GeneratorModal: React.FC<GeneratorModalProps> = ({ isOpen, onClose, onOptimize, onConfirmOptimize, onGenerate, onRequestMasterPassword, currentFicha }) => {
+    const [step, setStep] = useState<'choice' | 'player_config' | 'player_preview' | 'gm_config'>('choice');
+    const [selectedArchetype, setSelectedArchetype] = useState<Arquétipo | null>(null);
+    const [previewData, setPreviewData] = useState<Record<Atributo, number> | null>(null);
+    const [npcName, setNpcName] = useState('');
+    const [npcLevel, setNpcLevel] = useState(0);
+
+    useEffect(() => {
+        if (!isOpen) {
+            setStep('choice');
+            setSelectedArchetype(null);
+            setPreviewData(null);
+            setNpcName('');
+            setNpcLevel(0);
+        }
+    }, [isOpen]);
+
+    const handleOptimizeSelect = (archetype: Arquétipo) => {
+        const proposedAttrs = onOptimize(archetype);
+        setPreviewData(proposedAttrs);
+        setStep('player_preview');
+    };
+
+    const handleConfirmOptimizeClick = () => {
+        if (previewData) {
+            onConfirmOptimize(previewData);
+        }
+        onClose();
+    };
+
+    const handleGenerateClick = () => {
+        if (!npcName.trim()) {
+            alert("O nome do NPC é obrigatório.");
+            return;
+        }
+        if (selectedArchetype === null) {
+            alert("Selecione um arquétipo.");
+            return;
+        }
+        onGenerate(npcName, npcLevel, selectedArchetype);
+        onClose();
+    };
+
+    const renderChoice = () => (
+        <div className="space-y-4">
+            <h3 className="text-center text-lg">Escolha uma opção:</h3>
+            <button onClick={() => setStep('player_config')} className="w-full py-3 bg-blue-800 hover:bg-blue-700 rounded-md transition-colors text-white">
+                Distribuição Rápida (Jogador)
+            </button>
+            <button onClick={() => onRequestMasterPassword(() => setStep('gm_config'))} className="w-full py-3 bg-purple-800 hover:bg-purple-700 rounded-md transition-colors text-white">
+                Gerar NPC (Mestre)
+            </button>
+        </div>
+    );
+    
+    const renderArchetypeSelection = (onSelect: (archetype: Arquétipo) => void, title: string) => (
+         <div>
+            <h3 className="text-center text-lg mb-4">{title}</h3>
+            <div className="grid grid-cols-1 gap-2">
+                {Object.keys(archetypeConfigs).map(arch => (
+                    <button
+                        key={arch}
+                        onClick={() => onSelect(arch as Arquétipo)}
+                        className={`py-2 px-4 rounded-md transition-colors text-white ${selectedArchetype === arch ? 'bg-amber-600' : 'bg-stone-700 hover:bg-stone-600'}`}
+                    >
+                        {arch}
+                    </button>
+                ))}
+            </div>
+        </div>
+    );
+    
+    const renderPlayerConfig = () => renderArchetypeSelection(handleOptimizeSelect, "Escolha um Arquétipo para Otimizar");
+
+    const renderPlayerPreview = () => (
+        <div>
+            <h3 className="text-center text-lg mb-4">Pré-visualização</h3>
+            <p className="text-sm text-center mb-2">Seus <span className="font-bold">{currentFicha.pontosHabilidadeDisponiveis}</span> pontos serão distribuídos da seguinte forma:</p>
+            <table className="w-full text-center">
+                <thead>
+                    <tr className="border-b border-stone-600">
+                        <th className="py-1">Atributo</th>
+                        <th className="py-1">Atual</th>
+                        <th className="py-1">Novo</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {previewData && Object.keys(previewData).map(attr => (
+                        <tr key={attr} className="border-b border-stone-700">
+                            <td className="py-2 font-bold capitalize">{attributeLabels[attr as Atributo]}</td>
+                            <td className="py-2">{currentFicha[attr as Atributo]}</td>
+                            <td className="py-2 text-green-400 font-bold text-lg">
+                                {currentFicha[attr as Atributo] + previewData[attr as Atributo]}
+                            </td>
+                        </tr>
+                    ))}
+                </tbody>
+            </table>
+            <div className="flex gap-2 mt-4">
+                <button onClick={() => setStep('player_config')} className="flex-1 py-2 bg-stone-600 hover:bg-stone-500 rounded-md text-white">Voltar</button>
+                <button onClick={handleConfirmOptimizeClick} className="flex-1 py-2 bg-green-700 hover:bg-green-600 rounded-md text-white">Confirmar</button>
+            </div>
+        </div>
+    );
+
+    const renderGmConfig = () => (
+        <div className="space-y-4">
+            <div>
+                <label htmlFor="npc-name">Nome do NPC</label>
+                <input id="npc-name" type="text" value={npcName} onChange={e => setNpcName(e.target.value)} className="w-full p-2 bg-stone-700 border border-stone-600 rounded-md" />
+            </div>
+             <div>
+                <label htmlFor="npc-level">Nível ({npcLevel})</label>
+                <input id="npc-level" type="range" min="0" max="30" value={npcLevel} onChange={e => setNpcLevel(parseInt(e.target.value))} className="w-full" />
+            </div>
+            {renderArchetypeSelection(arch => setSelectedArchetype(arch), "Escolha o Arquétipo-base")}
+            <div className="flex gap-2 pt-4">
+                <button onClick={() => setStep('choice')} className="flex-1 py-2 bg-stone-600 hover:bg-stone-500 rounded-md text-white">Cancelar</button>
+                <button onClick={handleGenerateClick} className="flex-1 py-2 bg-green-700 hover:bg-green-600 rounded-md text-white">Gerar</button>
+            </div>
+        </div>
+    );
+
+    const renderContent = () => {
+        switch (step) {
+            case 'choice': return renderChoice();
+            case 'player_config': return renderPlayerConfig();
+            case 'player_preview': return renderPlayerPreview();
+            case 'gm_config': return renderGmConfig();
+            default: return null;
+        }
+    };
+    
+    if (!isOpen) return null;
+
+    return (
+        <Modal title="Gerador & Otimizador" onClose={onClose}>
+            {renderContent()}
+        </Modal>
+    );
+};
 
 // ==========================================================================================
 // Conteúdo de: App.tsx
@@ -2730,6 +3049,7 @@ const App: React.FC = () => {
         switchFicha,
         updateFicha,
         createFicha,
+        createCustomFicha,
         deleteFicha,
         resetPontos,
         recomecarFicha,
@@ -2762,6 +3082,7 @@ const App: React.FC = () => {
     const [isNotesModalOpen, setNotesModalOpen] = useState(false);
     const [isHistoryModalOpen, setHistoryModalOpen] = useState(false);
     const [isConfirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+    const [isGeneratorOpen, setGeneratorOpen] = useState(false);
     const [newFichaName, setNewFichaName] = useState('');
 
     const handleUpdate = useCallback(<K extends keyof Ficha>(key: K, value: Ficha[K]) => {
@@ -2796,6 +3117,26 @@ const App: React.FC = () => {
     const handleRequestClearHistory = () => {
         setPasswordRequest(() => clearDiceHistory);
     };
+
+    const handleOptimize = useCallback((archetype: Arquétipo): Record<Atributo, number> => {
+        if (!currentFicha) return { forca: 0, destreza: 0, agilidade: 0, constituicao: 0, inteligencia: 0 };
+        return distributePoints(currentFicha.pontosHabilidadeDisponiveis, archetype);
+    }, [currentFicha]);
+
+    const handleConfirmOptimize = useCallback((updates: Record<Atributo, number>) => {
+        if (!currentFicha) return;
+        const finalUpdates: Partial<Ficha> = {};
+        for(const key in updates) {
+            const attr = key as Atributo;
+            finalUpdates[attr] = currentFicha[attr] + updates[attr];
+        }
+        handleBulkUpdate(finalUpdates);
+    }, [currentFicha, handleBulkUpdate]);
+
+    const handleGenerateNpc = useCallback((nome: string, level: number, archetype: Arquétipo) => {
+        const npcData = generateNpcData(level, archetype);
+        createCustomFicha(nome, npcData);
+    }, [createCustomFicha]);
     
     if (!currentFicha) {
         return (
@@ -2852,6 +3193,7 @@ const App: React.FC = () => {
                     nomePersonagem={currentFicha.nomePersonagem}
                     handleUpdate={handleUpdate}
                     onNewFicha={() => setNewFichaModalOpen(true)}
+                    onOpenGenerator={() => setGeneratorOpen(true)}
                     isGmMode={isGmMode}
                     onToggleGmMode={toggleGmMode}
                 />
@@ -3153,6 +3495,17 @@ const App: React.FC = () => {
                     ficha={currentFicha}
                     onClose={() => setExclusionModalOpen(false)}
                     onConfirm={excludeItems}
+                />
+            )}
+             {isGeneratorOpen && (
+                <GeneratorModal
+                    isOpen={isGeneratorOpen}
+                    onClose={() => setGeneratorOpen(false)}
+                    currentFicha={currentFicha}
+                    onOptimize={handleOptimize}
+                    onConfirmOptimize={handleConfirmOptimize}
+                    onGenerate={handleGenerateNpc}
+                    onRequestMasterPassword={setPasswordRequest}
                 />
             )}
             {passwordRequest && (
