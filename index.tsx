@@ -472,6 +472,9 @@ const useCharacterSheet = (onLevelUp?: () => void) => {
 
     useEffect(() => {
         let loadedFichas: Record<string, Ficha> = {};
+        let savedFichaId: string | null = null;
+        let savedGmMode: string | null = null;
+
         try {
             const fichasJSON = localStorage.getItem(RGP_FICHAS_KEY);
             if (fichasJSON) {
@@ -482,9 +485,12 @@ const useCharacterSheet = (onLevelUp?: () => void) => {
                     console.warn('Corrupted data in localStorage, initializing.');
                 }
             }
+            savedFichaId = localStorage.getItem(RPG_CURRENT_FICHA_ID_KEY);
+            savedGmMode = localStorage.getItem(RPG_GM_MODE_KEY);
         } catch (error) {
-            console.error("Failed to parse fichas from storage, initializing.", error);
+            console.error("Failed to read from localStorage. App will not remember settings.", error);
         }
+
 
         if (!loadedFichas[FICHA_MATRIZ_ID]) {
             loadedFichas[FICHA_MATRIZ_ID] = createDefaultFicha(FICHA_MATRIZ_ID, "Matriz");
@@ -550,14 +556,12 @@ const useCharacterSheet = (onLevelUp?: () => void) => {
         
         setFichas(loadedFichas);
 
-        const savedFichaId = localStorage.getItem(RPG_CURRENT_FICHA_ID_KEY);
         if (savedFichaId && loadedFichas[savedFichaId]) {
             setCurrentFichaId(savedFichaId);
         } else {
             setCurrentFichaId(FICHA_MATRIZ_ID);
         }
 
-        const savedGmMode = localStorage.getItem(RPG_GM_MODE_KEY);
         setIsGmMode(savedGmMode === 'true');
 
     }, []);
@@ -567,11 +571,19 @@ const useCharacterSheet = (onLevelUp?: () => void) => {
     const toggleGmMode = useCallback(() => {
         if (isGmMode) {
             setIsGmMode(false);
-            localStorage.setItem(RPG_GM_MODE_KEY, 'false');
+            try {
+                localStorage.setItem(RPG_GM_MODE_KEY, 'false');
+            } catch (error) {
+                console.error("Failed to save GM mode to localStorage", error);
+            }
         } else {
             setPasswordRequest(() => () => {
                 setIsGmMode(true);
-                localStorage.setItem(RPG_GM_MODE_KEY, 'true');
+                try {
+                    localStorage.setItem(RPG_GM_MODE_KEY, 'true');
+                } catch (error) {
+                    console.error("Failed to save GM mode to localStorage", error);
+                }
             });
         }
     }, [isGmMode]);
@@ -590,7 +602,11 @@ const useCharacterSheet = (onLevelUp?: () => void) => {
     const switchFicha = useCallback((id: string) => {
         if (fichas[id]) {
             setCurrentFichaId(id);
-            localStorage.setItem(RPG_CURRENT_FICHA_ID_KEY, id);
+            try {
+                localStorage.setItem(RPG_CURRENT_FICHA_ID_KEY, id);
+            } catch (error) {
+                console.error("Failed to save current ficha ID to storage", error);
+            }
         }
     }, [fichas]);
 
@@ -645,7 +661,11 @@ const useCharacterSheet = (onLevelUp?: () => void) => {
         setFichas(newFichas);
         saveFichasToStorage(newFichas);
         setCurrentFichaId(FICHA_MATRIZ_ID);
-        localStorage.setItem(RPG_CURRENT_FICHA_ID_KEY, FICHA_MATRIZ_ID);
+        try {
+            localStorage.setItem(RPG_CURRENT_FICHA_ID_KEY, FICHA_MATRIZ_ID);
+        } catch (error) {
+            console.error("Failed to save current ficha ID to storage", error);
+        }
 
     }, [currentFichaId, fichas, saveFichasToStorage]);
 
