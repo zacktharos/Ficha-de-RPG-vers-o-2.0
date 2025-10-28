@@ -435,6 +435,7 @@ const useCharacterSheet = () => {
     const [selectedAttribute, setSelectedAttribute] = useState<string | null>(null);
     const [passwordRequest, setPasswordRequest] = useState<(() => void) | null>(null);
     const [isGmMode, setIsGmMode] = useState(false);
+    const [levelUpEffect, setLevelUpEffect] = useState(false);
 
     const saveFichasToStorage = useCallback((fichasToSave: Record<string, Ficha>) => {
         try {
@@ -451,11 +452,20 @@ const useCharacterSheet = () => {
 
             let newFicha = { ...oldFicha, ...updatedFichaData };
             
+            const oldLevel = oldFicha.nivel;
             const nivelInfo = [...nivelData].reverse().find(data => newFicha.experiencia >= data.xp) || nivelData[0];
+            
             newFicha.nivel = nivelInfo.nivel;
             newFicha.pontosHabilidadeTotais = nivelInfo.pd + (newFicha.gmAdjustments?.pontosHabilidadeTotais || 0);
             newFicha.pontosVantagemTotais = nivelInfo.ph + (newFicha.gmAdjustments?.pontosVantagemTotais || 0);
             
+            if (newFicha.nivel > oldLevel) {
+                setLevelUpEffect(true);
+                setTimeout(() => {
+                    setLevelUpEffect(false);
+                }, 10000); // 10 seconds
+            }
+
             newFicha.pesoTotal = newFicha.inventario.reduce((sum, item) => sum + (item.peso || 0), 0);
             
             const finalFicha = calcularAtributos(newFicha);
@@ -621,20 +631,19 @@ const useCharacterSheet = () => {
         }
     }, [fichas, saveFichasToStorage, switchFicha]);
 
-    const generateNpc = useCallback((level: number, archetype: string, intensity: string) => {
+    const generateNpc = useCallback((level: number, archetype: string) => {
         const id = `npc_${Date.now()}`;
         const nomeFicha = `NPC: ${archetype} Nvl ${level}`;
         let newFicha = createDefaultFicha(id, nomeFicha);
         newFicha.nomePersonagem = nomeFicha;
 
-        // 1. Get base points
         const nivelInfo = nivelData[level] || nivelData[0];
         newFicha.nivel = nivelInfo.nivel;
         newFicha.experiencia = nivelInfo.xp;
-        newFicha.pontosHabilidadeTotais = nivelInfo.pd;
+        const totalPoints = nivelInfo.pd;
+        newFicha.pontosHabilidadeTotais = totalPoints;
         newFicha.pontosVantagemTotais = nivelInfo.ph;
 
-        // 2. Distribute Attributes
         const weights: Record<string, Record<keyof EditableAttributes, number>> = {
             Guerreiro: { forca: 5, constituicao: 4, destreza: 3, agilidade: 2, inteligencia: 1 },
             Mago: { inteligencia: 5, constituicao: 4, destreza: 2, agilidade: 2, forca: 1 },
@@ -650,25 +659,41 @@ const useCharacterSheet = () => {
         }
         
         const attrWeights = weights[currentArchetype as keyof typeof weights];
-        const weightedAttrs: (keyof EditableAttributes)[] = [];
-        for (const attr in attrWeights) {
-            for (let i = 0; i < attrWeights[attr as keyof EditableAttributes]; i++) {
-                weightedAttrs.push(attr as keyof EditableAttributes);
-            }
-        }
-
         const attributes: EditableAttributes = { forca: 0, destreza: 0, agilidade: 0, constituicao: 0, inteligencia: 0 };
-        for (let i = 0; i < newFicha.pontosHabilidadeTotais; i++) {
-            const randomAttr = weightedAttrs[Math.floor(Math.random() * weightedAttrs.length)];
-            attributes[randomAttr]++;
+        const attributeKeys: (keyof EditableAttributes)[] = ['forca', 'destreza', 'agilidade', 'constituicao', 'inteligencia'];
+
+        for (let i = 0; i < totalPoints; i++) {
+            const desirabilityScores: Record<keyof EditableAttributes, number> = { forca: 0, destreza: 0, agilidade: 0, constituicao: 0, inteligencia: 0 };
+            
+            attributeKeys.forEach(attr => {
+                let score = attrWeights[attr] * 10;
+                const currentValue = attributes[attr];
+
+                if (attr === 'forca' && ((currentValue + 1) % 5 === 0 || (currentValue + 1) % 10 === 0)) score *= 1.5;
+                if (attr === 'destreza' && ((currentValue + 1) % 3 === 0 || (currentValue + 1) % 5 === 0)) score *= 1.5;
+                if (attr === 'agilidade' && ((currentValue + 1) % 3 === 0 || (currentValue + 1) % 5 === 0 || (currentValue + 1) % 10 === 0)) score *= 1.5;
+                if (attr === 'inteligencia' && ((currentValue + 1) % 5 === 0 || (currentValue + 1) % 10 === 0)) score *= 1.5;
+
+                desirabilityScores[attr] = score;
+            });
+            
+            const totalScore = attributeKeys.reduce((sum, attr) => sum + desirabilityScores[attr], 0);
+            let random = Math.random() * totalScore;
+            
+            let chosenAttr: keyof EditableAttributes = 'forca';
+            for (const attr of attributeKeys) {
+                if (random < desirabilityScores[attr]) {
+                    chosenAttr = attr;
+                    break;
+                }
+                random -= desirabilityScores[attr];
+            }
+            attributes[chosenAttr]++;
         }
         newFicha = { ...newFicha, ...attributes };
 
-        // 3. Select Disadvantages, Race, and Advantages
         let pontosVantagem = newFicha.pontosVantagemTotais;
-        
-        const numDesvantagens = Math.floor(Math.random() * 3) + 1; // 1 a 3 desvantagens
-
+        const numDesvantagens = Math.floor(Math.random() * 3) + 1;
         const availableDesvantagens = [...desvantagensData];
         for (let i = 0; i < numDesvantagens && availableDesvantagens.length > 0; i++) {
             const randomIndex = Math.floor(Math.random() * availableDesvantagens.length);
@@ -698,7 +723,6 @@ const useCharacterSheet = () => {
             }
         }
         
-        // 4. Generate Equipment & Inventory
         if (currentArchetype === 'Guerreiro' || currentArchetype === 'Tanque') {
             newFicha.armaDireitaNome = "Espada Longa";
             newFicha.armaDireitaAtaque = 5;
@@ -722,13 +746,12 @@ const useCharacterSheet = () => {
         ];
         
         newFicha.inventario = []; 
-        const numItems = Math.floor(Math.random() * 3) + 2; // 2 to 4 items
+        const numItems = Math.floor(Math.random() * 3) + 2;
         const shuffledItems = utilityItems.sort(() => 0.5 - Math.random());
         for (let i = 0; i < numItems && i < shuffledItems.length; i++) {
             newFicha.inventario.push(shuffledItems[i]);
         }
         
-        // 5. Finalize and Save
         let finalFicha = calcularAtributos(newFicha);
         finalFicha.vidaAtual = finalFicha.vidaTotal;
         finalFicha.magiaAtual = finalFicha.magiaTotal;
@@ -904,6 +927,7 @@ const useCharacterSheet = () => {
         isGmMode,
         toggleGmMode,
         updateGmAdjustment,
+        levelUpEffect,
     };
 };
 
@@ -2224,16 +2248,14 @@ const NotesModal: React.FC<NotesModalProps> = ({ notes, onUpdate, onClose }) => 
 // --- NpcGeneratorModal.tsx ---
 interface NpcGeneratorModalProps {
     onClose: () => void;
-    onGenerate: (level: number, archetype: string, intensity: string) => void;
+    onGenerate: (level: number, archetype: string) => void;
 }
 
 const NpcGeneratorModal: React.FC<NpcGeneratorModalProps> = ({ onClose, onGenerate }) => {
     const [level, setLevel] = useState(0);
     const [archetype, setArchetype] = useState('Equilibrado');
-    const [intensity, setIntensity] = useState('Comum');
 
     const archetypes = ['Guerreiro', 'Mago', 'Ladino', 'Tanque', 'Equilibrado', 'Aleatório'];
-    const intensities = ['Fraco', 'Comum', 'Forte', 'Elite'];
     
     const componentStyle = { color: 'var(--text-color)'};
 
@@ -2257,15 +2279,9 @@ const NpcGeneratorModal: React.FC<NpcGeneratorModalProps> = ({ onClose, onGenera
                         {archetypes.map(a => <option key={a} value={a}>{a}</option>)}
                     </select>
                 </div>
-                <div>
-                    <label className="block font-bold mb-2">Intensidade</label>
-                    <select value={intensity} onChange={e => setIntensity(e.target.value)} className="w-full p-2 bg-stone-700 rounded" style={componentStyle}>
-                        {intensities.map(i => <option key={i} value={i}>{i}</option>)}
-                    </select>
-                </div>
                 <div className="pt-4 border-t border-stone-600">
                      <button
-                        onClick={() => onGenerate(level, archetype, intensity)}
+                        onClick={() => onGenerate(level, archetype)}
                         className="w-full py-3 bg-amber-700 hover:bg-amber-600 rounded-md transition text-white font-bold"
                     >
                         Gerar NPC
@@ -3125,6 +3141,7 @@ const App: React.FC = () => {
         isGmMode,
         toggleGmMode,
         updateGmAdjustment,
+        levelUpEffect,
     } = useCharacterSheet();
 
     useDynamicStyles(currentFicha);
@@ -3212,8 +3229,8 @@ const App: React.FC = () => {
         input.click();
     }, [importFicha]);
 
-    const handleGenerateNpc = (level: number, archetype: string, intensity: string) => {
-        generateNpc(level, archetype, intensity);
+    const handleGenerateNpc = (level: number, archetype: string) => {
+        generateNpc(level, archetype);
         setNpcGeneratorOpen(false);
     };
 
@@ -3270,7 +3287,7 @@ const App: React.FC = () => {
 
     return (
         <div className={appClasses}>
-            <div id="character-sheet-container" className="max-w-2xl mx-auto sm:rounded-xl shadow-2xl shadow-black/50 overflow-hidden sm:my-4" style={{
+            <div id="character-sheet-container" className={`max-w-2xl mx-auto sm:rounded-xl shadow-2xl shadow-black/50 overflow-hidden sm:my-4 ${levelUpEffect ? 'level-up-glow' : ''}`} style={{
                 backgroundColor: 'var(--sheet-bg-color)',
                 opacity: currentFicha.sheetOpacity / 100,
                 borderWidth: `var(--border-width)`,

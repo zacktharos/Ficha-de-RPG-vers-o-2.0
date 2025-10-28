@@ -31,6 +31,21 @@
         font-family: 'MedievalSharp', serif;
         color: var(--accent-color);
       }
+      
+      @keyframes level-up-border-glow {
+        0%, 100% {
+          box-shadow: var(--sheet-shadow), 0 0 15px 5px rgba(0, 225, 255, 0.7);
+          border-color: #00e1ff;
+        }
+        50% {
+          box-shadow: var(--sheet-shadow), 0 0 30px 10px rgba(0, 225, 255, 0.9), 0 0 50px 15px rgba(0, 120, 255, 0.5);
+          border-color: #fff;
+        }
+      }
+
+      .level-up-glow {
+        animation: level-up-border-glow 0.8s infinite alternate;
+      }
     </style>
   <script type="importmap">
 {
