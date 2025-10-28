@@ -975,6 +975,12 @@ const Actions: React.FC<ActionsProps> = ({ onResetPontos, onRecomecar, onRequest
     );
 };
 
+const QuestionMarkIcon = ({ className = '' }: { className?: string }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" className={`inline-block w-4 h-4 ${className}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 5.25h.008v.008H12v-.008Z" />
+    </svg>
+);
+
 // --- Attributes.tsx ---
 type EditableAttributes = Pick<Ficha, 'forca' | 'destreza' | 'agilidade' | 'constituicao' | 'inteligencia'>;
 
@@ -1114,7 +1120,7 @@ const Attributes: React.FC<AttributesProps> = ({ ficha, onBulkUpdate, selectedAt
                             <div className="flex items-center gap-1.5">
                                 <label className="font-bold">{attributeLabels[attr]}</label>
                                 <Tooltip text={primaryAttributeTooltips[attr]}>
-                                    <span className="cursor-help text-xs opacity-70" aria-label={`Explicação para ${attributeLabels[attr]}`}>❓</span>
+                                    <span className="cursor-help text-xs opacity-70" aria-label={`Explicação para ${attributeLabels[attr]}`}><QuestionMarkIcon /></span>
                                 </Tooltip>
                             </div>
                             <div className="flex items-center gap-2">
@@ -1153,7 +1159,7 @@ const Attributes: React.FC<AttributesProps> = ({ ficha, onBulkUpdate, selectedAt
                             <div className="flex items-center gap-1.5">
                                 <label className="font-bold" style={{ color: 'var(--accent-color)' }}>{label}</label>
                                 <Tooltip text={derivedAttributeTooltips[key]}>
-                                    <span className="cursor-help text-xs opacity-70" aria-label={`Explicação para ${label}`}>❓</span>
+                                    <span className="cursor-help text-xs opacity-70" aria-label={`Explicação para ${label}`}><QuestionMarkIcon /></span>
                                 </Tooltip>
                             </div>
                             <div className="flex items-center gap-2">
@@ -1713,7 +1719,7 @@ const ExclusionModal: React.FC<ExclusionModalProps> = ({ ficha, onClose, onConfi
 // --- Header.tsx ---
 const FileIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
     </svg>
 );
 
@@ -1973,7 +1979,7 @@ const LocomotionStat: React.FC<{
                 <span>{icon}</span>
                 <span>{label}</span>
                 <Tooltip text={locomotionTooltips[attrKey]}>
-                    <span className="cursor-help text-xs opacity-70" aria-label={`Explicação para ${label}`}>❓</span>
+                    <span className="cursor-help text-xs opacity-70" aria-label={`Explicação para ${label}`}><QuestionMarkIcon /></span>
                 </Tooltip>
             </div>
             <div className="flex items-center gap-2">
@@ -2306,7 +2312,7 @@ const ResourceBar: React.FC<{
                 <div className="flex items-center gap-1.5 font-bold">
                     <span>{icon} {label}</span>
                     <Tooltip text={resourceTooltips[label.toLowerCase()]}>
-                        <span className="cursor-help text-xs opacity-70" aria-label={`Explicação para ${label}`}>❓</span>
+                        <span className="cursor-help text-xs opacity-70" aria-label={`Explicação para ${label}`}><QuestionMarkIcon /></span>
                     </Tooltip>
                 </div>
                 <div className="font-mono flex items-center gap-1">
