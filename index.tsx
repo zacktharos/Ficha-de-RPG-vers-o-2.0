@@ -905,6 +905,53 @@ const Section: React.FC<SectionProps> = ({ title, children, defaultOpen = false 
     );
 };
 
+// --- Tooltip.tsx ---
+interface TooltipProps {
+    text: string;
+    children: React.ReactNode;
+}
+
+const Tooltip: React.FC<TooltipProps> = ({ text, children }) => {
+    const [isVisible, setIsVisible] = useState(false);
+
+    return (
+        <>
+            <span
+                onClick={() => setIsVisible(true)}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setIsVisible(true); }}
+                role="button"
+                tabIndex={0}
+                className="cursor-help"
+            >
+                {children}
+            </span>
+            {isVisible && (
+                <div 
+                    className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4"
+                    onClick={() => setIsVisible(false)}
+                >
+                    <div 
+                        className="relative w-full max-w-md p-6 bg-stone-800 border border-stone-600 rounded-lg shadow-lg text-center"
+                        onClick={(e) => e.stopPropagation()} 
+                        style={{backgroundColor: 'var(--component-bg-color)'}}
+                    >
+                        <button 
+                            onClick={() => setIsVisible(false)} 
+                            className="absolute top-2 right-3 text-3xl font-bold leading-none hover:opacity-75" 
+                            style={{color: 'var(--accent-color)'}}
+                            aria-label="Fechar"
+                        >
+                            &times;
+                        </button>
+                        <p className="whitespace-pre-wrap text-left" style={{ color: 'var(--text-color)' }}>{text}</p>
+                    </div>
+                </div>
+            )}
+        </>
+    );
+};
+
+
 // --- Actions.tsx ---
 interface ActionsProps {
     onResetPontos: () => void;
@@ -954,6 +1001,23 @@ const derivedAttributeLabels: Record<string, string> = {
     esquiva: "Esquiva",
     rdf: "RDF",
     rdm: "RDM"
+};
+
+const primaryAttributeTooltips: Record<keyof EditableAttributes, string> = {
+    forca: "Olá, aventureiro! Como vai a Força? Falando nela, cada ponto que você distribui aqui aumenta seu Ataque em +1. Além disso, a cada 5 pontos, sua Redução de Dano Físico (RDF) e sua Capacidade de Carga melhoram. E não para por aí: a cada 10 pontos, seus pulos ficam mais altos e sua Vida Total recebe um bônus! Poder puro!",
+    destreza: "Saudações, andarilho de mãos rápidas! Sua precisão é lendária. A cada 3 pontos em Destreza, seu Acerto aumenta em +1, garantindo que seus golpes atinjam o alvo. A cada 5 pontos, você também ganha +1 de Ataque, um toque de fineza em sua ofensiva.",
+    agilidade: "Veloz como o vento, não é mesmo? Sua Agilidade é a chave para a sobrevivência. A cada 3 pontos, sua Esquiva aumenta em +1, tornando-o um alvo difícil. Ela também impulsiona sua Velocidade de Corrida e a Distância dos seus Pulos. Um bônus a cada 10 pontos ainda melhora seu Acerto!",
+    constituicao: "Firme como uma montanha! Sua Constituição é o pilar da sua resistência. Cada ponto investido aqui aumenta drasticamente sua Vida, Magia e Vigor totais, além de acelerar a Regeneração de todos eles. Um verdadeiro herói precisa de fôlego para grandes batalhas!",
+    inteligencia: "Olá, mente brilhante! O conhecimento é sua maior arma. Cada ponto em Inteligência aumenta seu Ataque Mágico em +1. A cada 5 pontos, sua Redução de Dano Mágico (RDM) melhora. Se for sábio o suficiente (10+ de INT), sua Magia Total será ampliada pela sua Constituição. Use seu poder com sabedoria!"
+};
+
+const derivedAttributeTooltips: Record<string, string> = {
+    ataque: "Este é o seu poder de esmagar inimigos! Seu Ataque é a soma da sua Força, um bônus da sua Destreza (a cada 5 pontos) e o poder da sua arma. Quanto maior, mais dano você causa!",
+    ataqueMagico: "O poder arcano flui através de você! Seu Ataque Mágico é a soma da sua Inteligência e o poder de sua arma mágica. Canalize essa energia para conjurar feitiços devastadores.",
+    acerto: "De que adianta a força sem precisão? Seu Acerto determina a chance de atingir o alvo. Ele vem da sua Destreza (a cada 3 pontos) com um toque de Agilidade (a cada 10 pontos). Mire bem!",
+    esquiva: "Ser intocável é uma grande vantagem. Sua Esquiva é sua capacidade de desviar de golpes, vinda diretamente da sua Agilidade (a cada 3 pontos). Dance pelo campo de batalha!",
+    rdf: "Resistência é fundamental. Sua Redução de Dano Físico (RDF) diminui o dano de golpes, socos e flechas. Ela é forjada a partir da sua Força (a cada 5 pontos).",
+    rdm: "Sua mente é um escudo. Sua Redução de Dano Mágico (RDM) protege você de feitiços e maldições. Ela é fortalecida pela sua Inteligência (a cada 5 pontos)."
 };
 
 const DiceIcon = ({ className = '' }: { className?: string }) => (
@@ -1047,7 +1111,12 @@ const Attributes: React.FC<AttributesProps> = ({ ficha, onBulkUpdate, selectedAt
                 <div className="divide-y divide-stone-700">
                     {primaryAttributes.map(attr => (
                          <div key={attr} className="flex justify-between items-center py-2">
-                            <label className="font-bold">{attributeLabels[attr]}</label>
+                            <div className="flex items-center gap-1.5">
+                                <label className="font-bold">{attributeLabels[attr]}</label>
+                                <Tooltip text={primaryAttributeTooltips[attr]}>
+                                    <span className="cursor-help text-xs opacity-70" aria-label={`Explicação para ${attributeLabels[attr]}`}>❓</span>
+                                </Tooltip>
+                            </div>
                             <div className="flex items-center gap-2">
                                 {!isGmMode ? (
                                     <>
@@ -1081,7 +1150,12 @@ const Attributes: React.FC<AttributesProps> = ({ ficha, onBulkUpdate, selectedAt
                      const isSelected = selectedAttribute === attrKey;
                      return (
                          <div key={key} className="flex justify-between items-center py-2 px-3 bg-stone-900/50 rounded-md" style={componentStyle}>
-                            <label className="font-bold" style={{ color: 'var(--accent-color)' }}>{label}</label>
+                            <div className="flex items-center gap-1.5">
+                                <label className="font-bold" style={{ color: 'var(--accent-color)' }}>{label}</label>
+                                <Tooltip text={derivedAttributeTooltips[key]}>
+                                    <span className="cursor-help text-xs opacity-70" aria-label={`Explicação para ${label}`}>❓</span>
+                                </Tooltip>
+                            </div>
                             <div className="flex items-center gap-2">
                                 <EditableStat 
                                     value={displayFicha[attrKey] as number}
@@ -1870,6 +1944,12 @@ interface LocomotionProps {
     setSelectedAttribute: (attr: string | null) => void;
 }
 
+const locomotionTooltips: Record<string, string> = {
+    velocidadeCorrida: "Corra como o vento! Sua velocidade base é 25 km/h, e cada 3 pontos em Agilidade te deixam 3 km/h mais rápido. A vantagem 'Combo Físico' te transforma num verdadeiro velocista com +25 km/h!",
+    alturaPulo: "Alcance os céus! Você já pula 1 metro, e cada 10 pontos em Força te impulsionam 1 metro mais alto. Com o 'Combo Físico', você ganha +2 metros de altura, superando qualquer obstáculo.",
+    distanciaPulo: "Cruze abismos com um salto! Seu pulo básico tem 3 metros. Sua Força e Agilidade (a cada 5 pontos em ambos) te impulsionam mais longe. O 'Combo Físico' adiciona impressionantes 6 metros à sua distância!"
+};
+
 const LocomotionStat: React.FC<{
     label: string;
     value: number;
@@ -1889,10 +1969,13 @@ const LocomotionStat: React.FC<{
 
     return (
         <div className="flex justify-between items-center py-2 px-3 bg-stone-900/50 rounded-md" style={componentStyle}>
-            <label className="font-bold flex items-center gap-2">
+             <div className="font-bold flex items-center gap-2">
                 <span>{icon}</span>
-                {label}
-            </label>
+                <span>{label}</span>
+                <Tooltip text={locomotionTooltips[attrKey]}>
+                    <span className="cursor-help text-xs opacity-70" aria-label={`Explicação para ${label}`}>❓</span>
+                </Tooltip>
+            </div>
             <div className="flex items-center gap-2">
                 <span className="font-bold text-lg">
                     {value}
@@ -2189,6 +2272,12 @@ interface ResourceBarsProps {
     onGmUpdate: (attr: keyof Ficha, adjustment: number) => void;
 }
 
+const resourceTooltips: Record<string, string> = {
+    vida: "Sua energia vital, o que te mantém de pé! Sua Vida Total é calculada com base na sua Constituição, com um bônus da sua Força e Nível. Lembre-se, um herói ferido ainda é um herói, mas um herói morto... nem tanto. Sua regeneração por turno é 0.2 * Constituição.",
+    magia: "A fonte do seu poder arcano. Sua Magia Total depende da sua Constituição e, para os mais sábios, da sua Inteligência. Gerencie bem este recurso para virar o jogo com feitiços poderosos! Sua regeneração por turno é 0.8 * Constituição.",
+    vigor: "Seu fôlego de combate, a estamina para feitos incríveis! Seu Vigor é determinado pela sua Constituição e é essencial para usar habilidades especiais e continuar lutando. Mantenha-o alto para não se cansar no meio da batalha! Sua regeneração por turno é 0.4 * Constituição."
+};
+
 const ResourceBar: React.FC<{
     label: string;
     current: number;
@@ -2214,7 +2303,12 @@ const ResourceBar: React.FC<{
     return (
         <div className="bg-stone-900/50 p-3 rounded-lg" style={componentStyle}>
             <div className="flex justify-between items-center mb-1 text-sm">
-                <span className="font-bold">{icon} {label}</span>
+                <div className="flex items-center gap-1.5 font-bold">
+                    <span>{icon} {label}</span>
+                    <Tooltip text={resourceTooltips[label.toLowerCase()]}>
+                        <span className="cursor-help text-xs opacity-70" aria-label={`Explicação para ${label}`}>❓</span>
+                    </Tooltip>
+                </div>
                 <div className="font-mono flex items-center gap-1">
                     <span>{current} /</span>
                     <EditableStat
