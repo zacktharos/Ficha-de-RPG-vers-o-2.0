@@ -32,6 +32,49 @@
         color: var(--accent-color);
       }
       
+      /* ========================================================================== */
+      /* ANIMAÇÕES GERAIS */
+      /* ========================================================================== */
+      @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+      }
+      @keyframes fadeOut {
+        from { opacity: 1; }
+        to { opacity: 0; }
+      }
+      @keyframes scaleUp {
+        from { transform: scale(0.95); }
+        to { transform: scale(1); }
+      }
+      @keyframes scaleDown {
+        from { transform: scale(1); }
+        to { transform: scale(0.95); }
+      }
+
+      .modal-enter {
+        animation: fadeIn 0.3s ease-out forwards;
+      }
+      .modal-content-enter {
+        animation: scaleUp 0.3s ease-out forwards;
+      }
+      .modal-exit {
+        animation: fadeOut 0.3s ease-in forwards;
+      }
+      .modal-content-exit {
+        animation: scaleDown 0.3s ease-in forwards;
+      }
+
+      /* Animação de Flash para Atributos */
+      @keyframes attribute-flash {
+        0% { color: var(--accent-color); text-shadow: 0 0 8px var(--accent-color); }
+        100% { color: inherit; text-shadow: none; }
+      }
+      .attribute-flash-animation {
+        animation: attribute-flash 0.8s ease-out;
+      }
+
+      /* Animação de Level Up */
       @keyframes level-up-border-glow {
         0%, 100% {
           box-shadow: var(--sheet-shadow), 0 0 15px 5px rgba(0, 225, 255, 0.7);
@@ -46,6 +89,129 @@
       .level-up-glow {
         animation: level-up-border-glow 0.8s infinite alternate;
       }
+
+      @keyframes level-up-number-pop {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.5) rotate(-5deg); color: #00e1ff; }
+        100% { transform: scale(1); }
+      }
+      .level-up-number-pop-animation {
+        animation: level-up-number-pop 0.5s ease-in-out;
+        display: inline-block;
+      }
+
+      /* Interações de Botão */
+      .btn-interactive {
+        transition: transform 0.1s ease-out, background-color 0.2s;
+      }
+      .btn-interactive:hover:not(:disabled) {
+        transform: scale(1.05);
+      }
+      .btn-interactive:active:not(:disabled) {
+        transform: scale(0.95);
+      }
+      
+      /* Animações da Barra de Recursos */
+      @keyframes shimmer {
+        0% { transform: translateX(-100%) skewX(-30deg); }
+        100% { transform: translateX(200%) skewX(-30deg); }
+      }
+      .shimmer-bar::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 50%;
+        height: 100%;
+        background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.4) 50%, rgba(255,255,255,0) 100%);
+        animation: shimmer 1.2s ease-in-out forwards;
+      }
+      
+      /* Animações de Dados */
+      @keyframes roll-default {
+        0% { transform: scale(0.8) rotate(0deg); opacity: 0; }
+        50% { transform: scale(1.2) rotate(360deg); opacity: 1; }
+        80% { transform: scale(0.9) rotate(350deg); }
+        100% { transform: scale(1) rotate(360deg); opacity: 1; }
+      }
+      .animate-roll-default { animation: roll-default 1s ease-out forwards; }
+
+      @keyframes roll-fast {
+        0% { transform: scale(0.5) rotate(0deg); opacity: 0; }
+        100% { transform: scale(1) rotate(720deg); opacity: 1; }
+      }
+      .animate-roll-fast { animation: roll-fast 0.5s cubic-bezier(0.1, 0.7, 1.0, 0.1) forwards; }
+
+      @keyframes roll-jump {
+        0% { transform: translateY(0) scale(1) rotate(0); }
+        25% { transform: translateY(-50px) scale(1.2) rotate(180deg); }
+        50% { transform: translateY(0) scale(1) rotate(360deg); }
+        75% { transform: translateY(-20px) scale(1.1) rotate(540deg); }
+        100% { transform: translateY(0) scale(1) rotate(720deg); }
+      }
+      .animate-roll-jump { animation: roll-jump 1.2s ease-in-out forwards; }
+      
+      @keyframes result-land {
+          0% { transform: scale(1.5); opacity: 0; }
+          60% { transform: scale(0.9); opacity: 1; }
+          80% { transform: scale(1.05); }
+          100% { transform: scale(1); }
+      }
+      .dice-result-land {
+        display: inline-block;
+        animation: result-land 0.4s ease-out;
+      }
+      
+      @keyframes crit-success-glow {
+          0%, 100% { text-shadow: 0 0 8px #FFD700, 0 0 16px #FFD700; color: #FFD700; }
+          50% { text-shadow: 0 0 16px #FFF, 0 0 32px #FFD700; color: #FFF; }
+      }
+      .crit-success {
+          animation: crit-success-glow 1.5s infinite;
+      }
+      
+      @keyframes crit-fail-pulse {
+          0%, 100% { text-shadow: 0 0 5px #ff4d4d; color: #ff4d4d; transform: scale(1); }
+          50% { text-shadow: 0 0 10px #ff0000; color: #ff8c8c; transform: scale(1.1); }
+      }
+      .crit-fail {
+          animation: crit-fail-pulse 1s infinite;
+      }
+
+      /* Animação de Acordeão (Section) */
+      .section-content-wrapper {
+        display: grid;
+        grid-template-rows: 0fr;
+        transition: grid-template-rows 0.4s ease-out;
+      }
+      .section-content-wrapper.open {
+        grid-template-rows: 1fr;
+      }
+      .section-content-wrapper > div {
+        overflow: hidden;
+      }
+
+      /* Animação de troca de abas no mobile */
+      @keyframes slide-in-right {
+        from { opacity: 0; transform: translateX(50px); }
+        to { opacity: 1; transform: translateX(0); }
+      }
+      .animate-slide-in-right {
+        animation: slide-in-right 0.3s ease-out forwards;
+      }
+
+      @keyframes slide-in-left {
+        from { opacity: 0; transform: translateX(-50px); }
+        to { opacity: 1; transform: translateX(0); }
+      }
+      .animate-slide-in-left {
+        animation: slide-in-left 0.3s ease-out forwards;
+      }
+
+      .animate-tab-enter { /* Animação inicial */
+        animation: fadeIn 0.3s ease-out forwards;
+      }
+      
     </style>
   <script type="importmap">
 {
