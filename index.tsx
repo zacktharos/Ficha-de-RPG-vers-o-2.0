@@ -2570,7 +2570,7 @@ const VantagensDesvantagensPanel: React.FC<VantagensDesvantagensPanelProps> = ({
         <div className="fixed inset-0 bg-black/80 z-40 flex flex-col p-4">
             <div className="bg-stone-900 rounded-lg p-4 flex-grow flex flex-col border border-stone-700 relative min-h-0">
                 <button onClick={onClose} className="absolute top-4 right-4 text-3xl font-bold text-yellow-500 hover:text-yellow-400 z-10">&times;</button>
-                <div className="text-center mb-4">
+                <div className="text-center mb-4 flex-shrink-0">
                     <h2 className="text-3xl font-medieval">Vantagens e Desvantagens</h2>
                     <p>Pontos Restantes: <span className={`font-bold text-lg ${phRestante < 0 ? 'text-red-500' : 'text-green-400'}`}>{phRestante}</span></p>
                     <div className="mt-2 flex justify-center items-center gap-4">
@@ -2581,29 +2581,51 @@ const VantagensDesvantagensPanel: React.FC<VantagensDesvantagensPanelProps> = ({
                     </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 flex-grow overflow-hidden">
-                    <div className="space-y-2 flex flex-col">
-                        <h3 className="text-xl font-medieval">Vantagens</h3>
-                        <div className="space-y-1 overflow-y-auto pr-2">
+                <div className="flex flex-col md:flex-row gap-4 flex-grow min-h-0">
+                    {/* Vantagens Column */}
+                    <div className="flex flex-col space-y-2 flex-1 min-h-0">
+                        <h3 className="text-xl font-medieval text-center flex-shrink-0">Vantagens</h3>
+                        <div className="overflow-y-auto pr-2 space-y-1 p-2 rounded-md border border-stone-700" style={componentStyle}>
                             {vantagensData.map(v => {
                                 const isSelected = tempVantagens.includes(v.nome);
                                 const isSaved = ficha.vantagens.includes(v.nome);
                                 return (
-                                <div key={v.nome} onClick={() => toggleVantagem(v.nome, v.custo)} 
-                                className={`p-2 rounded transition-colors text-sm ${isSaved ? 'bg-amber-900/70 cursor-not-allowed' : (isSelected ? 'bg-green-800/50 cursor-pointer' : 'bg-stone-800 hover:bg-stone-700 cursor-pointer')}`} style={isSaved ? {} : (isSelected ? {} : componentStyle)}>
+                                <div 
+                                    key={v.nome} 
+                                    onClick={() => toggleVantagem(v.nome, v.custo)} 
+                                    className={`p-2 rounded transition-colors text-sm ${
+                                        isSaved 
+                                        ? 'bg-amber-900/70 cursor-not-allowed' 
+                                        : isSelected 
+                                            ? 'bg-green-800/50 cursor-pointer' 
+                                            : 'hover:bg-stone-700/50 cursor-pointer'
+                                    }`}
+                                >
                                     <strong>{v.nome}</strong> ({v.custo} PH) <p className="text-xs opacity-70">{v.descricao}</p>
                                 </div>
                             )})}
                         </div>
                     </div>
-                     <div className="space-y-2 flex flex-col">
-                        <h3 className="text-xl font-medieval text-red-500">Desvantagens</h3>
-                        <div className="space-y-1 overflow-y-auto pr-2">
+                    
+                    {/* Desvantagens Column */}
+                    <div className="flex flex-col space-y-2 flex-1 min-h-0">
+                        <h3 className="text-xl font-medieval text-red-500 text-center flex-shrink-0">Desvantagens</h3>
+                        <div className="overflow-y-auto pr-2 space-y-1 p-2 rounded-md border border-stone-700" style={componentStyle}>
                             {desvantagensData.map(d => {
                                 const isSelected = tempDesvantagens.includes(d.nome);
                                 const isSaved = ficha.desvantagens.includes(d.nome);
                                 return (
-                                <div key={d.nome} onClick={() => toggleDesvantagem(d.nome)} className={`p-2 rounded transition-colors text-sm ${isSaved ? 'bg-amber-900/70 cursor-not-allowed' : (isSelected ? 'bg-red-800/50 cursor-pointer' : 'bg-stone-800 hover:bg-stone-700 cursor-pointer')}`} style={isSaved ? {} : (isSelected ? {} : componentStyle)}>
+                                <div 
+                                    key={d.nome} 
+                                    onClick={() => toggleDesvantagem(d.nome)} 
+                                    className={`p-2 rounded transition-colors text-sm ${
+                                        isSaved 
+                                        ? 'bg-amber-900/70 cursor-not-allowed' 
+                                        : isSelected 
+                                            ? 'bg-red-800/50 cursor-pointer' 
+                                            : 'hover:bg-stone-700/50 cursor-pointer'
+                                    }`}
+                                >
                                     <strong>{d.nome}</strong> (+{d.ganho} PH) <p className="text-xs opacity-70">{d.descricao}</p>
                                 </div>
                             )})}
@@ -2614,6 +2636,7 @@ const VantagensDesvantagensPanel: React.FC<VantagensDesvantagensPanelProps> = ({
         </div>
     );
 };
+
 
 // --- Vitals.tsx ---
 interface VitalsProps {
