@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import ReactDOM from 'react-dom/client';
 
 // ==========================================================================================
@@ -595,6 +596,28 @@ const useCharacterSheet = () => {
         switchFicha(id);
     }, [fichas, saveFichasToStorage, switchFicha]);
     
+    const importFicha = useCallback((fichaData: Omit<Ficha, 'id'>) => {
+        try {
+            const id = `ficha_${Date.now()}`;
+            const defaultFicha = createDefaultFicha(id, "");
+            const newFicha = {
+                ...defaultFicha,
+                ...fichaData,
+                id,
+                nomeFicha: `${fichaData.nomeFicha || "Ficha"} (Importada)`
+            };
+
+            const newFichas = { ...fichas, [id]: newFicha };
+            setFichas(newFichas);
+            saveFichasToStorage(newFichas);
+            switchFicha(id);
+            alert(`Ficha "${newFicha.nomeFicha}" importada com sucesso!`);
+        } catch (error) {
+            console.error("Error importing ficha in hook:", error);
+            alert("Ocorreu um erro interno ao adicionar a ficha importada.");
+        }
+    }, [fichas, saveFichasToStorage, switchFicha]);
+
     const deleteFicha = useCallback(() => {
         if (currentFichaId === FICHA_MATRIZ_ID) {
             alert("A ficha matriz não pode ser excluída!");
@@ -738,6 +761,7 @@ const useCharacterSheet = () => {
         updateFicha,
         createFicha,
         deleteFicha,
+        importFicha,
         resetPontos,
         recomecarFicha,
         resetAesthetics,
@@ -1613,6 +1637,12 @@ const ExclusionModal: React.FC<ExclusionModalProps> = ({ ficha, onClose, onConfi
 };
 
 // --- Header.tsx ---
+const FileIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+    </svg>
+);
+
 interface HeaderProps {
     fichas: Record<string, Ficha>;
     currentFichaId: string;
@@ -1622,10 +1652,27 @@ interface HeaderProps {
     onNewFicha: () => void;
     isGmMode: boolean;
     onToggleGmMode: () => void;
+    onImport: () => void;
+    onExport: () => void;
 }
 
-const Header: React.FC<HeaderProps> = ({ fichas, currentFichaId, switchFicha, nomePersonagem, handleUpdate, onNewFicha, isGmMode, onToggleGmMode }) => {
+const Header: React.FC<HeaderProps> = ({ fichas, currentFichaId, switchFicha, nomePersonagem, handleUpdate, onNewFicha, isGmMode, onToggleGmMode, onImport, onExport }) => {
     const componentStyle = { backgroundColor: 'var(--component-bg-color)', color: 'var(--text-color)' };
+    const [isIoMenuOpen, setIsIoMenuOpen] = useState(false);
+    const ioMenuRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (ioMenuRef.current && !ioMenuRef.current.contains(event.target as Node)) {
+                setIsIoMenuOpen(false);
+            }
+        };
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => {
+            document.removeEventListener("mousedown", handleClickOutside);
+        };
+    }, []);
+
     return (
         <header className="bg-stone-900 p-4 border-b border-stone-700" style={{backgroundColor: 'rgba(0,0,0,0.2)', borderColor: 'var(--border-color)'}}>
             <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
@@ -1661,6 +1708,31 @@ const Header: React.FC<HeaderProps> = ({ fichas, currentFichaId, switchFicha, no
                     >
                         +
                     </button>
+                    <div className="relative" ref={ioMenuRef}>
+                        <button
+                            onClick={() => setIsIoMenuOpen(v => !v)}
+                            className="py-2 px-3 rounded-md transition-colors bg-stone-700 hover:bg-stone-600 text-white"
+                            title="Importar/Exportar Ficha"
+                        >
+                            <FileIcon />
+                        </button>
+                        {isIoMenuOpen && (
+                            <div className="absolute right-0 mt-2 w-48 bg-stone-800 border border-stone-600 rounded-md shadow-lg z-10" style={{ backgroundColor: 'var(--component-bg-color)'}}>
+                                <ul className="py-1">
+                                    <li>
+                                        <button onClick={() => { onImport(); setIsIoMenuOpen(false); }} className="block w-full text-left px-4 py-2 text-sm hover:bg-stone-700" style={{ color: 'var(--text-color)' }}>
+                                            Importar Ficha
+                                        </button>
+                                    </li>
+                                    <li>
+                                        <button onClick={() => { onExport(); setIsIoMenuOpen(false); }} className="block w-full text-left px-4 py-2 text-sm hover:bg-stone-700" style={{ color: 'var(--text-color)' }}>
+                                            Exportar Ficha
+                                        </button>
+                                    </li>
+                                </ul>
+                            </div>
+                        )}
+                    </div>
                     <button
                         onClick={onToggleGmMode}
                         className={`font-bold py-2 px-4 rounded-md transition-colors text-2xl ${isGmMode ? 'bg-purple-600 hover:bg-purple-500' : 'bg-stone-700 hover:bg-stone-600'}`}
@@ -2496,7 +2568,7 @@ const VantagensDesvantagensPanel: React.FC<VantagensDesvantagensPanelProps> = ({
 
     return (
         <div className="fixed inset-0 bg-black/80 z-40 flex flex-col p-4">
-            <div className="bg-stone-900 rounded-lg p-4 flex-grow flex flex-col border border-stone-700 relative">
+            <div className="bg-stone-900 rounded-lg p-4 flex-grow flex flex-col border border-stone-700 relative min-h-0">
                 <button onClick={onClose} className="absolute top-4 right-4 text-3xl font-bold text-yellow-500 hover:text-yellow-400 z-10">&times;</button>
                 <div className="text-center mb-4">
                     <h2 className="text-3xl font-medieval">Vantagens e Desvantagens</h2>
@@ -2509,10 +2581,10 @@ const VantagensDesvantagensPanel: React.FC<VantagensDesvantagensPanelProps> = ({
                     </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 flex-grow overflow-y-auto">
-                    <div className="space-y-2">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 flex-grow overflow-hidden">
+                    <div className="space-y-2 flex flex-col">
                         <h3 className="text-xl font-medieval">Vantagens</h3>
-                        <div className="space-y-1 max-h-96 overflow-y-auto pr-2">
+                        <div className="space-y-1 overflow-y-auto pr-2">
                             {vantagensData.map(v => {
                                 const isSelected = tempVantagens.includes(v.nome);
                                 const isSaved = ficha.vantagens.includes(v.nome);
@@ -2524,9 +2596,9 @@ const VantagensDesvantagensPanel: React.FC<VantagensDesvantagensPanelProps> = ({
                             )})}
                         </div>
                     </div>
-                     <div className="space-y-2">
+                     <div className="space-y-2 flex flex-col">
                         <h3 className="text-xl font-medieval text-red-500">Desvantagens</h3>
-                        <div className="space-y-1 max-h-96 overflow-y-auto pr-2">
+                        <div className="space-y-1 overflow-y-auto pr-2">
                             {desvantagensData.map(d => {
                                 const isSelected = tempDesvantagens.includes(d.nome);
                                 const isSaved = ficha.desvantagens.includes(d.nome);
@@ -2731,6 +2803,7 @@ const App: React.FC = () => {
         updateFicha,
         createFicha,
         deleteFicha,
+        importFicha,
         resetPontos,
         recomecarFicha,
         resetAesthetics,
@@ -2783,6 +2856,57 @@ const App: React.FC = () => {
             setNewFichaModalOpen(false);
         }
     };
+    
+    const handleExportFicha = useCallback(() => {
+        if (!currentFicha) return;
+        try {
+            const fichaJson = JSON.stringify(currentFicha, null, 2);
+            const blob = new Blob([fichaJson], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            const fileName = (currentFicha.nomePersonagem || currentFicha.nomeFicha || 'ficha_rpg').trim().replace(/\s+/g, '_');
+            a.download = `${fileName}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        } catch (error) {
+            console.error("Failed to export ficha", error);
+            alert("Ocorreu um erro ao exportar a ficha.");
+        }
+    }, [currentFicha]);
+
+    const handleImportFicha = useCallback(() => {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = '.json';
+        input.onchange = (e) => {
+            const file = (e.target as HTMLInputElement).files?.[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                try {
+                    const text = event.target?.result;
+                    if (typeof text !== 'string') throw new Error("File content is not a string.");
+                    
+                    const importedFichaData = JSON.parse(text);
+
+                    if (typeof importedFichaData !== 'object' || importedFichaData === null || !('nomeFicha' in importedFichaData)) {
+                        throw new Error("Invalid ficha file format.");
+                    }
+                    importFicha(importedFichaData);
+                } catch (error) {
+                    console.error("Failed to import ficha", error);
+                    alert("Falha ao importar ficha. O arquivo pode estar corrompido ou em formato inválido.");
+                }
+            };
+            reader.readAsText(file);
+        };
+        input.click();
+    }, [importFicha]);
+
 
     const handleConfirmDelete = () => {
         deleteFicha();
@@ -2854,6 +2978,8 @@ const App: React.FC = () => {
                     onNewFicha={() => setNewFichaModalOpen(true)}
                     isGmMode={isGmMode}
                     onToggleGmMode={toggleGmMode}
+                    onImport={handleImportFicha}
+                    onExport={handleExportFicha}
                 />
                 
                 <main className="p-2 sm:p-4">
