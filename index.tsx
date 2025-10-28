@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import ReactDOM from 'react-dom/client';
+import { GoogleGenAI, Type } from "@google/genai";
 
 // ==========================================================================================
 // Conteúdo de: types.ts
@@ -587,13 +588,14 @@ const useCharacterSheet = () => {
         }
     }, [fichas]);
 
-    const createFicha = useCallback((nomeFicha: string) => {
+    const createFicha = useCallback((nomeFicha: string): string => {
         const id = `ficha_${Date.now()}`;
         const newFicha = createDefaultFicha(id, nomeFicha);
         const newFichas = { ...fichas, [id]: newFicha };
         setFichas(newFichas);
         saveFichasToStorage(newFichas);
         switchFicha(id);
+        return id;
     }, [fichas, saveFichasToStorage, switchFicha]);
     
     const importFicha = useCallback((fichaData: Omit<Ficha, 'id'>) => {
@@ -1727,16 +1729,15 @@ interface HeaderProps {
     fichas: Record<string, Ficha>;
     currentFichaId: string;
     switchFicha: (id: string) => void;
-    nomePersonagem: string;
-    handleUpdate: (key: 'nomePersonagem', value: string) => void;
     onNewFicha: () => void;
     isGmMode: boolean;
     onToggleGmMode: () => void;
     onImport: () => void;
     onExport: () => void;
+    onOpenNpcGenerator: () => void;
 }
 
-const Header: React.FC<HeaderProps> = ({ fichas, currentFichaId, switchFicha, nomePersonagem, handleUpdate, onNewFicha, isGmMode, onToggleGmMode, onImport, onExport }) => {
+const Header: React.FC<HeaderProps> = ({ fichas, currentFichaId, switchFicha, onNewFicha, isGmMode, onToggleGmMode, onImport, onExport, onOpenNpcGenerator }) => {
     const componentStyle = { backgroundColor: 'var(--component-bg-color)', color: 'var(--text-color)' };
     const [isIoMenuOpen, setIsIoMenuOpen] = useState(false);
     const ioMenuRef = useRef<HTMLDivElement>(null);
@@ -1756,15 +1757,6 @@ const Header: React.FC<HeaderProps> = ({ fichas, currentFichaId, switchFicha, no
     return (
         <header className="bg-stone-900 p-4 border-b border-stone-700" style={{backgroundColor: 'rgba(0,0,0,0.2)', borderColor: 'var(--border-color)'}}>
             <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
-                 <input
-                    type="text"
-                    id="nome-personagem"
-                    placeholder="Nome do Personagem"
-                    value={nomePersonagem}
-                    onChange={(e) => handleUpdate('nomePersonagem', e.target.value)}
-                    className="w-full sm:w-auto text-2xl sm:text-3xl font-medieval bg-transparent text-center sm:text-left focus:outline-none focus:ring-2 focus:ring-amber-500 rounded-md px-2 py-1"
-                    style={{ color: 'var(--accent-color)' }}
-                />
                 <div className="flex items-center gap-2">
                      <select
                         value={currentFichaId}
@@ -1797,7 +1789,7 @@ const Header: React.FC<HeaderProps> = ({ fichas, currentFichaId, switchFicha, no
                             <FileIcon />
                         </button>
                         {isIoMenuOpen && (
-                            <div className="absolute right-0 mt-2 w-48 bg-stone-800 border border-stone-600 rounded-md shadow-lg z-10" style={{ backgroundColor: 'var(--component-bg-color)'}}>
+                            <div className="absolute left-0 mt-2 w-48 bg-stone-800 border border-stone-600 rounded-md shadow-lg z-10" style={{ backgroundColor: 'var(--component-bg-color)'}}>
                                 <ul className="py-1">
                                     <li>
                                         <button onClick={() => { onImport(); setIsIoMenuOpen(false); }} className="block w-full text-left px-4 py-2 text-sm hover:bg-stone-700" style={{ color: 'var(--text-color)' }}>
@@ -1813,6 +1805,17 @@ const Header: React.FC<HeaderProps> = ({ fichas, currentFichaId, switchFicha, no
                             </div>
                         )}
                     </div>
+                </div>
+                 <div className="flex items-center gap-2">
+                     {isGmMode && (
+                        <button
+                            onClick={onOpenNpcGenerator}
+                            className="py-2 px-3 rounded-md transition-colors bg-cyan-700 hover:bg-cyan-600 text-white text-2xl"
+                            title="Gerar NPC com IA"
+                        >
+                            🤖
+                        </button>
+                    )}
                     <button
                         onClick={onToggleGmMode}
                         className={`font-bold py-2 px-4 rounded-md transition-colors text-2xl ${isGmMode ? 'bg-purple-600 hover:bg-purple-500' : 'bg-stone-700 hover:bg-stone-600'}`}
@@ -2091,6 +2094,227 @@ const NotesModal: React.FC<NotesModalProps> = ({ notes, onUpdate, onClose }) => 
                 >
                     Fechar
                 </button>
+            </div>
+        </Modal>
+    );
+};
+
+// --- NpcGeneratorModal.tsx ---
+interface NpcGeneratorModalProps {
+    onClose: () => void;
+    createFicha: (name: string) => string;
+    updateFicha: (id: string, updates: Partial<Ficha>) => void;
+}
+
+const NpcGeneratorModal: React.FC<NpcGeneratorModalProps> = ({ onClose, createFicha, updateFicha }) => {
+    const [archetype, setArchetype] = useState('Tanque');
+    const [level, setLevel] = useState(1);
+    const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState('');
+
+    const handleGenerate = async () => {
+        setIsLoading(true);
+        setError('');
+        try {
+            const ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });
+
+            const nivelInfo = nivelData.find(n => n.nivel === level) || nivelData[0];
+            const totalAtributos = nivelInfo.pd;
+
+            const racasList = racasData.map(r => r.nome.split(' (')[0]).join(', ');
+            const desvantagensList = desvantagensData.map(d => d.nome).join(', ');
+            const vantagensList = vantagensData.map(v => v.nome).join(', ');
+
+            const prompt = `Crie um personagem de RPG para um cenário de fantasia medieval.
+Arquétipo: ${archetype}
+Nível: ${level}
+
+Por favor, gere os seguintes detalhes em formato JSON, seguindo estritamente o schema fornecido:
+- Um nome completo e apropriado para o arquétipo.
+- Uma descrição física curta (uma frase).
+- Uma história de origem criativa em dois parágrafos.
+- Idade, peso (ex: '85 kg'), altura (ex: '1.85m'), cor dos olhos e cor do cabelo.
+- Uma raça apropriada do seguinte universo: ${racasList}. O nome da raça deve ser exatamente como na lista.
+- Uma distribuição de pontos de atributo (forca, destreza, agilidade, constituicao, inteligencia) que some ${totalAtributos}, seja coerente com o arquétipo e nível, e não use valores negativos.
+- Duas desvantagens da lista a seguir que sejam coerentes com a história: ${desvantagensList}. O nome da desvantagem deve ser exatamente como na lista, incluindo o ' (+X)' no final.
+- Duas vantagens da lista a seguir que sejam coerentes com a história e arquétipo: ${vantagensList}. O nome da vantagem deve ser exatamente como na lista, incluindo o ' (X)' no final.`;
+            
+            const responseSchema = {
+                type: Type.OBJECT,
+                properties: {
+                    nome: { type: Type.STRING },
+                    descricaoFisica: { type: Type.STRING },
+                    historia: { type: Type.STRING },
+                    idade: { type: Type.INTEGER },
+                    peso: { type: Type.STRING },
+                    altura: { type: Type.STRING },
+                    corOlhos: { type: Type.STRING },
+                    corCabelo: { type: Type.STRING },
+                    raca: { type: Type.STRING },
+                    atributos: {
+                        type: Type.OBJECT,
+                        properties: {
+                            forca: { type: Type.INTEGER },
+                            destreza: { type: Type.INTEGER },
+                            agilidade: { type: Type.INTEGER },
+                            constituicao: { type: Type.INTEGER },
+                            inteligencia: { type: Type.INTEGER },
+                        },
+                        required: ['forca', 'destreza', 'agilidade', 'constituicao', 'inteligencia']
+                    },
+                    desvantagens: {
+                        type: Type.ARRAY,
+                        items: { type: Type.STRING },
+                    },
+                     vantagens: {
+                        type: Type.ARRAY,
+                        items: { type: Type.STRING },
+                    },
+                },
+                required: ['nome', 'descricaoFisica', 'historia', 'idade', 'peso', 'altura', 'corOlhos', 'corCabelo', 'raca', 'atributos', 'desvantagens', 'vantagens']
+            };
+
+            const response = await ai.models.generateContent({
+                model: 'gemini-2.5-flash',
+                contents: prompt,
+                config: {
+                    responseMimeType: 'application/json',
+                    responseSchema: responseSchema,
+                },
+            });
+            
+            const data = JSON.parse(response.text);
+
+            const newFichaId = createFicha(`NPC - ${data.nome}`);
+
+            const fullDescription = `${data.descricaoFisica}\n\nIdade: ${data.idade} | Altura: ${data.altura} | Peso: ${data.peso}\nOlhos: ${data.corOlhos} | Cabelo: ${data.corCabelo}\n\n${data.historia}`;
+            
+            const foundRaca = racasData.find(r => r.nome.startsWith(data.raca));
+            const foundDesvantagens = (data.desvantagens || [])
+                .map((dName: string) => desvantagensData.find(d => d.nome === dName))
+                .filter(Boolean)
+                .map((d: Desvantagem) => d.nome);
+            const foundVantagens = (data.vantagens || [])
+                .map((vName: string) => vantagensData.find(v => v.nome === vName))
+                .filter(Boolean)
+                .map((v: Vantagem) => v.nome);
+
+
+            let armaDireitaNome = '';
+            let armaDireitaAtaque = 0;
+            let armaDireitaAtaqueMagico = 0;
+            let armaEsquerdaNome = '';
+            let armaEsquerdaAtaque = 0;
+            let armaEsquerdaAtaqueMagico = 0;
+            let inventario: InventarioItem[] = [];
+
+            switch (archetype) {
+                case 'Tanque':
+                    armaDireitaNome = 'Maça de Guerra';
+                    armaDireitaAtaque = 3;
+                    armaEsquerdaNome = 'Escudo Simples';
+                    inventario.push({ item: 'Armadura de Couro', peso: 5 });
+                    break;
+                case 'Precisão':
+                    armaDireitaNome = 'Arco Curto';
+                    armaDireitaAtaque = 2;
+                    armaEsquerdaNome = 'Adaga';
+                    armaEsquerdaAtaque = 1;
+                    inventario.push({ item: 'Aljava com 20 flechas', peso: 1 });
+                    break;
+                case 'Mago':
+                    armaDireitaNome = 'Cajado de Madeira';
+                    armaDireitaAtaqueMagico = 2;
+                    inventario.push({ item: 'Grimório Básico', peso: 1 }, { item: 'Poção de Mana Pequena', peso: 0.2});
+                    break;
+                case 'Ladino':
+                    armaDireitaNome = 'Adaga';
+                    armaDireitaAtaque = 1;
+                    armaEsquerdaNome = 'Adaga';
+                    armaEsquerdaAtaque = 1;
+                    inventario.push({ item: 'Gazua', peso: 0.1 });
+                    break;
+                case 'Suporte':
+                     armaDireitaNome = 'Cajado Simples';
+                     armaDireitaAtaqueMagico = 1;
+                     inventario.push({ item: 'Kit de Primeiros Socorros', peso: 1 });
+                    break;
+            }
+
+
+            const updates: Partial<Ficha> = {
+                nomePersonagem: data.nome,
+                descricaoPersonagem: fullDescription,
+                ...data.atributos,
+                nivel: level,
+                experiencia: nivelInfo.xp,
+                racaSelecionada: foundRaca ? foundRaca.nome : null,
+                desvantagens: foundDesvantagens,
+                vantagens: foundVantagens,
+                inventario: inventario,
+                armaDireitaNome,
+                armaDireitaAtaque,
+                armaDireitaAtaqueMagico,
+                armaEsquerdaNome,
+                armaEsquerdaAtaque,
+                armaEsquerdaAtaqueMagico,
+            };
+
+            updateFicha(newFichaId, updates);
+            onClose();
+
+        } catch (err) {
+            console.error("Error generating NPC:", err);
+            setError("Falha ao gerar o NPC. Verifique sua chave de API e tente novamente.");
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    return (
+        <Modal title="Gerador de NPC com IA" onClose={onClose}>
+            <div className="space-y-4">
+                <div>
+                    <label htmlFor="archetype" className="block text-sm font-medium">Arquétipo</label>
+                    <select
+                        id="archetype"
+                        value={archetype}
+                        onChange={(e) => setArchetype(e.target.value)}
+                        className="mt-1 block w-full p-2 bg-stone-700 border border-stone-600 rounded-md"
+                        style={{ color: 'var(--text-color)' }}
+                    >
+                        <option>Tanque</option>
+                        <option>Precisão</option>
+                        <option>Mago</option>
+                        <option>Ladino</option>
+                        <option>Suporte</option>
+                    </select>
+                </div>
+                <div>
+                    <label htmlFor="level" className="block text-sm font-medium">Nível</label>
+                    <input
+                        type="number"
+                        id="level"
+                        value={level}
+                        onChange={(e) => setLevel(Math.max(0, Math.min(30, parseInt(e.target.value) || 0)))}
+                        className="mt-1 block w-full p-2 bg-stone-700 border border-stone-600 rounded-md"
+                    />
+                </div>
+                {error && <p className="text-red-500 text-sm">{error}</p>}
+                <div className="flex justify-end gap-2 pt-2">
+                    <button onClick={onClose} className="px-4 py-2 bg-stone-600 rounded-md text-white">Cancelar</button>
+                    <button
+                        onClick={handleGenerate}
+                        disabled={isLoading}
+                        className="px-4 py-2 bg-amber-700 hover:bg-amber-600 rounded-md text-white disabled:bg-stone-500 flex items-center justify-center"
+                    >
+                        {isLoading ? (
+                            <div className="w-5 h-5 border-2 border-t-transparent border-white rounded-full animate-spin"></div>
+                        ) : (
+                            "Gerar NPC"
+                        )}
+                    </button>
+                </div>
             </div>
         </Modal>
     );
@@ -2958,6 +3182,7 @@ const App: React.FC = () => {
     const [isNotesModalOpen, setNotesModalOpen] = useState(false);
     const [isHistoryModalOpen, setHistoryModalOpen] = useState(false);
     const [isConfirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+    const [isNpcGeneratorOpen, setNpcGeneratorOpen] = useState(false);
     const [newFichaName, setNewFichaName] = useState('');
 
     const handleUpdate = useCallback(<K extends keyof Ficha>(key: K, value: Ficha[K]) => {
@@ -3096,16 +3321,26 @@ const App: React.FC = () => {
                     fichas={fichas}
                     currentFichaId={currentFichaId}
                     switchFicha={switchFicha}
-                    nomePersonagem={currentFicha.nomePersonagem}
-                    handleUpdate={handleUpdate}
                     onNewFicha={() => setNewFichaModalOpen(true)}
                     isGmMode={isGmMode}
                     onToggleGmMode={toggleGmMode}
                     onImport={handleImportFicha}
                     onExport={handleExportFicha}
+                    onOpenNpcGenerator={() => setNpcGeneratorOpen(true)}
                 />
+                 <div className="p-4 pt-2 sm:px-4">
+                    <input
+                        type="text"
+                        id="nome-personagem"
+                        placeholder="Nome do Personagem"
+                        value={currentFicha.nomePersonagem}
+                        onChange={(e) => handleUpdate('nomePersonagem', e.target.value)}
+                        className="w-full text-3xl font-medieval bg-transparent text-center focus:outline-none focus:ring-2 focus:ring-amber-500 rounded-md px-2 py-1"
+                        style={{ color: 'var(--accent-color)' }}
+                    />
+                </div>
                 
-                <main className="p-2 sm:p-4">
+                <main className="p-2 sm:p-4 sm:pt-0">
                     {/* ======== DESKTOP VIEW ======== */}
                     <div className="hidden sm:space-y-4 sm:block">
                         <Section title="Informações Básicas" defaultOpen>
@@ -3402,6 +3637,13 @@ const App: React.FC = () => {
                     ficha={currentFicha}
                     onClose={() => setExclusionModalOpen(false)}
                     onConfirm={excludeItems}
+                />
+            )}
+            {isNpcGeneratorOpen && (
+                <NpcGeneratorModal
+                    onClose={() => setNpcGeneratorOpen(false)}
+                    createFicha={createFicha}
+                    updateFicha={updateFicha}
                 />
             )}
             {passwordRequest && (
