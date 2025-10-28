@@ -425,6 +425,9 @@ const createDefaultFicha = (id: string, nomeFicha: string): Ficha => ({
     accentColor: '#f59e0b',
 });
 
+type EditableAttributes = Pick<Ficha, 'forca' | 'destreza' | 'agilidade' | 'constituicao' | 'inteligencia'>;
+
+
 const useCharacterSheet = () => {
     const [fichas, setFichas] = useState<Record<string, Ficha>>({});
     const [currentFichaId, setCurrentFichaId] = useState<string>(FICHA_MATRIZ_ID);
@@ -618,6 +621,127 @@ const useCharacterSheet = () => {
         }
     }, [fichas, saveFichasToStorage, switchFicha]);
 
+    const generateNpc = useCallback((level: number, archetype: string, intensity: string) => {
+        const id = `npc_${Date.now()}`;
+        const nomeFicha = `NPC: ${archetype} Nvl ${level}`;
+        let newFicha = createDefaultFicha(id, nomeFicha);
+        newFicha.nomePersonagem = nomeFicha;
+
+        // 1. Get base points
+        const nivelInfo = nivelData[level] || nivelData[0];
+        newFicha.nivel = nivelInfo.nivel;
+        newFicha.experiencia = nivelInfo.xp;
+        newFicha.pontosHabilidadeTotais = nivelInfo.pd;
+        newFicha.pontosVantagemTotais = nivelInfo.ph;
+
+        // 2. Distribute Attributes
+        const weights: Record<string, Record<keyof EditableAttributes, number>> = {
+            Guerreiro: { forca: 5, constituicao: 4, destreza: 3, agilidade: 2, inteligencia: 1 },
+            Mago: { inteligencia: 5, constituicao: 4, destreza: 2, agilidade: 2, forca: 1 },
+            Ladino: { agilidade: 5, destreza: 4, inteligencia: 3, forca: 2, constituicao: 2 },
+            Tanque: { constituicao: 5, forca: 4, destreza: 2, agilidade: 1, inteligencia: 1 },
+            Equilibrado: { forca: 1, destreza: 1, agilidade: 1, constituicao: 1, inteligencia: 1 },
+        };
+        
+        let currentArchetype = archetype;
+        if (archetype === 'Aleatório') {
+            const archetypes = Object.keys(weights).filter(a => a !== 'Equilibrado');
+            currentArchetype = archetypes[Math.floor(Math.random() * archetypes.length)];
+        }
+        
+        const attrWeights = weights[currentArchetype as keyof typeof weights];
+        const weightedAttrs: (keyof EditableAttributes)[] = [];
+        for (const attr in attrWeights) {
+            for (let i = 0; i < attrWeights[attr as keyof EditableAttributes]; i++) {
+                weightedAttrs.push(attr as keyof EditableAttributes);
+            }
+        }
+
+        const attributes: EditableAttributes = { forca: 0, destreza: 0, agilidade: 0, constituicao: 0, inteligencia: 0 };
+        for (let i = 0; i < newFicha.pontosHabilidadeTotais; i++) {
+            const randomAttr = weightedAttrs[Math.floor(Math.random() * weightedAttrs.length)];
+            attributes[randomAttr]++;
+        }
+        newFicha = { ...newFicha, ...attributes };
+
+        // 3. Select Disadvantages, Race, and Advantages
+        let pontosVantagem = newFicha.pontosVantagemTotais;
+        
+        const numDesvantagens = Math.floor(Math.random() * 3) + 1; // 1 a 3 desvantagens
+
+        const availableDesvantagens = [...desvantagensData];
+        for (let i = 0; i < numDesvantagens && availableDesvantagens.length > 0; i++) {
+            const randomIndex = Math.floor(Math.random() * availableDesvantagens.length);
+            const chosen = availableDesvantagens.splice(randomIndex, 1)[0];
+            newFicha.desvantagens.push(chosen.nome);
+            pontosVantagem += chosen.ganho;
+        }
+
+        const affordableRaces = racasData.filter(r => r.custo <= pontosVantagem);
+        if (affordableRaces.length > 0) {
+            const chosenRace = affordableRaces[Math.floor(Math.random() * affordableRaces.length)];
+            newFicha.racaSelecionada = chosenRace.nome;
+            pontosVantagem -= chosenRace.custo;
+        }
+        
+        const availableVantagens = [...vantagensData].filter(v => v.restricao !== 'inicio');
+        availableVantagens.sort(() => 0.5 - Math.random()); 
+
+        while (pontosVantagem > 0 && availableVantagens.length > 0) {
+            let advantageToPick = availableVantagens.find(v => v.custo <= pontosVantagem);
+            if (advantageToPick) {
+                newFicha.vantagens.push(advantageToPick.nome);
+                pontosVantagem -= advantageToPick.custo;
+                availableVantagens.splice(availableVantagens.indexOf(advantageToPick), 1);
+            } else {
+                break; 
+            }
+        }
+        
+        // 4. Generate Equipment & Inventory
+        if (currentArchetype === 'Guerreiro' || currentArchetype === 'Tanque') {
+            newFicha.armaDireitaNome = "Espada Longa";
+            newFicha.armaDireitaAtaque = 5;
+            if (currentArchetype === 'Tanque') newFicha.armaEsquerdaNome = "Escudo de Madeira";
+        } else if (currentArchetype === 'Mago') {
+            newFicha.armaDireitaNome = "Cajado de Aprendiz";
+            newFicha.armaDireitaAtaqueMagico = 5;
+        } else if (currentArchetype === 'Ladino') {
+            newFicha.armaDireitaNome = "Adaga Afiada";
+            newFicha.armaDireitaAtaque = 3;
+        }
+
+        const utilityItems = [
+            { item: 'Corda (15m)', peso: 1.5 },
+            { item: 'Tochas (5)', peso: 1.0 },
+            { item: 'Ração de viagem (3 dias)', peso: 1.5 },
+            { item: 'Cantil de água', peso: 1.0 },
+            { item: 'Pederneira', peso: 0.1 },
+            { item: 'Mapa simples da região', peso: 0.1 },
+            { item: 'Bolsa com 1d6 moedas', peso: 0.2 },
+        ];
+        
+        newFicha.inventario = []; 
+        const numItems = Math.floor(Math.random() * 3) + 2; // 2 to 4 items
+        const shuffledItems = utilityItems.sort(() => 0.5 - Math.random());
+        for (let i = 0; i < numItems && i < shuffledItems.length; i++) {
+            newFicha.inventario.push(shuffledItems[i]);
+        }
+        
+        // 5. Finalize and Save
+        let finalFicha = calcularAtributos(newFicha);
+        finalFicha.vidaAtual = finalFicha.vidaTotal;
+        finalFicha.magiaAtual = finalFicha.magiaTotal;
+        finalFicha.vigorAtual = finalFicha.vigorTotal;
+
+        const newFichas = { ...fichas, [id]: finalFicha };
+        setFichas(newFichas);
+        saveFichasToStorage(newFichas);
+        switchFicha(id);
+
+    }, [fichas, saveFichasToStorage, switchFicha]);
+
+
     const deleteFicha = useCallback(() => {
         if (currentFichaId === FICHA_MATRIZ_ID) {
             alert("A ficha matriz não pode ser excluída!");
@@ -762,6 +886,7 @@ const useCharacterSheet = () => {
         createFicha,
         deleteFicha,
         importFicha,
+        generateNpc,
         resetPontos,
         recomecarFicha,
         resetAesthetics,
@@ -982,8 +1107,6 @@ const QuestionMarkIcon = ({ className = '' }: { className?: string }) => (
 );
 
 // --- Attributes.tsx ---
-type EditableAttributes = Pick<Ficha, 'forca' | 'destreza' | 'agilidade' | 'constituicao' | 'inteligencia'>;
-
 interface AttributesProps {
     ficha: Ficha;
     onBulkUpdate: (updates: Partial<Ficha>) => void;
@@ -1535,7 +1658,7 @@ const DiceRoller: React.FC<DiceRollerProps> = ({ onRoll, selectedAttribute, setS
                 style={{ borderColor: 'var(--accent-color)', color: 'var(--accent-color)', backgroundColor: ficha.darkMode ? '#2d2d2d' : '' }}
                 title="Rolar Dados"
             >
-                <DiceIcon className="w-9 h-9" />
+                <span className="text-4xl">🎲</span>
             </button>
         );
     }
@@ -1717,12 +1840,6 @@ const ExclusionModal: React.FC<ExclusionModalProps> = ({ ficha, onClose, onConfi
 };
 
 // --- Header.tsx ---
-const FileIcon = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
-    </svg>
-);
-
 interface HeaderProps {
     fichas: Record<string, Ficha>;
     currentFichaId: string;
@@ -1734,9 +1851,10 @@ interface HeaderProps {
     onToggleGmMode: () => void;
     onImport: () => void;
     onExport: () => void;
+    onOpenNpcGenerator: () => void;
 }
 
-const Header: React.FC<HeaderProps> = ({ fichas, currentFichaId, switchFicha, nomePersonagem, handleUpdate, onNewFicha, isGmMode, onToggleGmMode, onImport, onExport }) => {
+const Header: React.FC<HeaderProps> = ({ fichas, currentFichaId, switchFicha, nomePersonagem, handleUpdate, onNewFicha, isGmMode, onToggleGmMode, onImport, onExport, onOpenNpcGenerator }) => {
     const componentStyle = { backgroundColor: 'var(--component-bg-color)', color: 'var(--text-color)' };
     const [isIoMenuOpen, setIsIoMenuOpen] = useState(false);
     const ioMenuRef = useRef<HTMLDivElement>(null);
@@ -1754,36 +1872,27 @@ const Header: React.FC<HeaderProps> = ({ fichas, currentFichaId, switchFicha, no
     }, []);
 
     return (
-        <header className="bg-stone-900 p-4 border-b border-stone-700" style={{backgroundColor: 'rgba(0,0,0,0.2)', borderColor: 'var(--border-color)'}}>
-            <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
-                 <input
-                    type="text"
-                    id="nome-personagem"
-                    placeholder="Nome do Personagem"
-                    value={nomePersonagem}
-                    onChange={(e) => handleUpdate('nomePersonagem', e.target.value)}
-                    className="w-full sm:w-auto text-2xl sm:text-3xl font-medieval bg-transparent text-center sm:text-left focus:outline-none focus:ring-2 focus:ring-amber-500 rounded-md px-2 py-1"
-                    style={{ color: 'var(--accent-color)' }}
-                />
+        <header className="bg-stone-900 p-4 border-b border-stone-700 flex flex-col gap-4" style={{backgroundColor: 'rgba(0,0,0,0.2)', borderColor: 'var(--border-color)'}}>
+            <div className="flex justify-between items-center gap-2">
+                 <select
+                    value={currentFichaId}
+                    onChange={(e) => switchFicha(e.target.value)}
+                    className="flex-grow sm:flex-grow-0 bg-stone-800 border border-stone-600 rounded-md p-2 focus:ring-2 focus:ring-amber-500 focus:outline-none"
+                    style={componentStyle}
+                >
+                    {Object.values(fichas).sort((a: Ficha, b: Ficha) => {
+                        if (a.id === FICHA_MATRIZ_ID) return -1;
+                        if (b.id === FICHA_MATRIZ_ID) return 1;
+                        return a.nomeFicha.localeCompare(b.nomeFicha);
+                    })
+                    .map((f: Ficha) => (
+                        <option key={f.id} value={f.id}>{f.nomeFicha}</option>
+                    ))}
+                </select>
                 <div className="flex items-center gap-2">
-                     <select
-                        value={currentFichaId}
-                        onChange={(e) => switchFicha(e.target.value)}
-                        className="bg-stone-800 border border-stone-600 rounded-md p-2 focus:ring-2 focus:ring-amber-500 focus:outline-none"
-                        style={componentStyle}
-                    >
-                        {Object.values(fichas).sort((a: Ficha, b: Ficha) => {
-                            if (a.id === FICHA_MATRIZ_ID) return -1;
-                            if (b.id === FICHA_MATRIZ_ID) return 1;
-                            return a.nomeFicha.localeCompare(b.nomeFicha);
-                        })
-                        .map((f: Ficha) => (
-                            <option key={f.id} value={f.id}>{f.nomeFicha}</option>
-                        ))}
-                    </select>
                      <button
                         onClick={onNewFicha}
-                        className="bg-amber-700 hover:bg-amber-600 text-white font-bold py-2 px-4 rounded-md transition-colors"
+                        className="bg-amber-700 hover:bg-amber-600 text-white font-bold p-2 rounded-md transition-colors"
                         title="Criar Nova Ficha"
                     >
                         +
@@ -1791,10 +1900,10 @@ const Header: React.FC<HeaderProps> = ({ fichas, currentFichaId, switchFicha, no
                     <div className="relative" ref={ioMenuRef}>
                         <button
                             onClick={() => setIsIoMenuOpen(v => !v)}
-                            className="py-2 px-3 rounded-md transition-colors bg-stone-700 hover:bg-stone-600 text-white"
+                            className="p-2 rounded-md transition-colors bg-stone-700 hover:bg-stone-600 text-white"
                             title="Importar/Exportar Ficha"
                         >
-                            <FileIcon />
+                            <span className="text-xl">🔃</span>
                         </button>
                         {isIoMenuOpen && (
                             <div className="absolute right-0 mt-2 w-48 bg-stone-800 border border-stone-600 rounded-md shadow-lg z-10" style={{ backgroundColor: 'var(--component-bg-color)'}}>
@@ -1814,14 +1923,30 @@ const Header: React.FC<HeaderProps> = ({ fichas, currentFichaId, switchFicha, no
                         )}
                     </div>
                     <button
+                        onClick={onOpenNpcGenerator}
+                        className="p-2 rounded-md transition-colors bg-stone-700 hover:bg-stone-600 text-white flex items-center justify-center"
+                        title="Gerador de NPC"
+                    >
+                        <span className="text-xl">🧙</span>
+                    </button>
+                    <button
                         onClick={onToggleGmMode}
-                        className={`font-bold py-2 px-4 rounded-md transition-colors text-2xl ${isGmMode ? 'bg-purple-600 hover:bg-purple-500' : 'bg-stone-700 hover:bg-stone-600'}`}
+                        className={`font-bold p-2 rounded-md transition-colors text-2xl ${isGmMode ? 'bg-purple-600 hover:bg-purple-500' : 'bg-stone-700 hover:bg-stone-600'}`}
                         title={isGmMode ? "Desativar Modo Mestre" : "Ativar Modo Mestre"}
                     >
                         ⚙️
                     </button>
                 </div>
             </div>
+             <input
+                type="text"
+                id="nome-personagem"
+                placeholder="Nome do Personagem"
+                value={nomePersonagem}
+                onChange={(e) => handleUpdate('nomePersonagem', e.target.value)}
+                className="w-full text-2xl sm:text-3xl font-medieval bg-transparent text-center focus:outline-none focus:ring-2 focus:ring-amber-500 rounded-md px-2 py-1"
+                style={{ color: 'var(--accent-color)' }}
+            />
         </header>
     );
 };
@@ -2091,6 +2216,61 @@ const NotesModal: React.FC<NotesModalProps> = ({ notes, onUpdate, onClose }) => 
                 >
                     Fechar
                 </button>
+            </div>
+        </Modal>
+    );
+};
+
+// --- NpcGeneratorModal.tsx ---
+interface NpcGeneratorModalProps {
+    onClose: () => void;
+    onGenerate: (level: number, archetype: string, intensity: string) => void;
+}
+
+const NpcGeneratorModal: React.FC<NpcGeneratorModalProps> = ({ onClose, onGenerate }) => {
+    const [level, setLevel] = useState(0);
+    const [archetype, setArchetype] = useState('Equilibrado');
+    const [intensity, setIntensity] = useState('Comum');
+
+    const archetypes = ['Guerreiro', 'Mago', 'Ladino', 'Tanque', 'Equilibrado', 'Aleatório'];
+    const intensities = ['Fraco', 'Comum', 'Forte', 'Elite'];
+    
+    const componentStyle = { color: 'var(--text-color)'};
+
+    return (
+        <Modal title="Gerador de NPC" onClose={onClose}>
+            <div className="space-y-4" style={componentStyle}>
+                <div>
+                    <label className="block font-bold mb-2">Nível: <span style={{color: 'var(--accent-color)'}}>{level}</span></label>
+                    <input
+                        type="range"
+                        min="0"
+                        max="30"
+                        value={level}
+                        onChange={(e) => setLevel(parseInt(e.target.value))}
+                        className="w-full"
+                    />
+                </div>
+                 <div>
+                    <label className="block font-bold mb-2">Arquétipo</label>
+                    <select value={archetype} onChange={e => setArchetype(e.target.value)} className="w-full p-2 bg-stone-700 rounded" style={componentStyle}>
+                        {archetypes.map(a => <option key={a} value={a}>{a}</option>)}
+                    </select>
+                </div>
+                <div>
+                    <label className="block font-bold mb-2">Intensidade</label>
+                    <select value={intensity} onChange={e => setIntensity(e.target.value)} className="w-full p-2 bg-stone-700 rounded" style={componentStyle}>
+                        {intensities.map(i => <option key={i} value={i}>{i}</option>)}
+                    </select>
+                </div>
+                <div className="pt-4 border-t border-stone-600">
+                     <button
+                        onClick={() => onGenerate(level, archetype, intensity)}
+                        className="w-full py-3 bg-amber-700 hover:bg-amber-600 rounded-md transition text-white font-bold"
+                    >
+                        Gerar NPC
+                    </button>
+                </div>
             </div>
         </Modal>
     );
@@ -2927,6 +3107,7 @@ const App: React.FC = () => {
         createFicha,
         deleteFicha,
         importFicha,
+        generateNpc,
         resetPontos,
         recomecarFicha,
         resetAesthetics,
@@ -2958,6 +3139,7 @@ const App: React.FC = () => {
     const [isNotesModalOpen, setNotesModalOpen] = useState(false);
     const [isHistoryModalOpen, setHistoryModalOpen] = useState(false);
     const [isConfirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+    const [isNpcGeneratorOpen, setNpcGeneratorOpen] = useState(false);
     const [newFichaName, setNewFichaName] = useState('');
 
     const handleUpdate = useCallback(<K extends keyof Ficha>(key: K, value: Ficha[K]) => {
@@ -3030,6 +3212,10 @@ const App: React.FC = () => {
         input.click();
     }, [importFicha]);
 
+    const handleGenerateNpc = (level: number, archetype: string, intensity: string) => {
+        generateNpc(level, archetype, intensity);
+        setNpcGeneratorOpen(false);
+    };
 
     const handleConfirmDelete = () => {
         deleteFicha();
@@ -3103,6 +3289,7 @@ const App: React.FC = () => {
                     onToggleGmMode={toggleGmMode}
                     onImport={handleImportFicha}
                     onExport={handleExportFicha}
+                    onOpenNpcGenerator={() => setNpcGeneratorOpen(true)}
                 />
                 
                 <main className="p-2 sm:p-4">
@@ -3309,12 +3496,18 @@ const App: React.FC = () => {
                                     {currentFicha.vantagens.length > 0 ? currentFicha.vantagens.map(v => <div key={v} className="text-sm"><span>{v}</span></div>) : <p className="text-sm opacity-70 italic">Nenhuma.</p>}
                                     <h3 className="font-bold text-red-500 mt-2 mb-1">Desvantagens</h3>
                                     {currentFicha.desvantagens.length > 0 ? currentFicha.desvantagens.map(d => <div key={d} className="text-sm"><span>{d}</span></div>) : <p className="text-sm opacity-70 italic">Nenhuma.</p>}
-                                    <button onClick={() => setVantagensPanelOpen(true)} className="w-full mt-2 py-2 px-4 bg-amber-800 hover:bg-amber-700 rounded-md transition text-white text-sm">Gerenciar</button>
+                                    <div className="grid grid-cols-2 gap-2 mt-2">
+                                        <button onClick={() => setVantagensPanelOpen(true)} className="py-2 px-4 bg-amber-800 hover:bg-amber-700 rounded-md transition text-white text-sm">Gerenciar</button>
+                                        <button onClick={openExclusionModal} className="py-2 px-4 bg-red-900 hover:bg-red-800 rounded-md transition text-white text-sm">Excluir...</button>
+                                    </div>
                                 </div>
                                 <div className="p-3 rounded-lg" style={componentStyle}>
                                      <h3 className="font-bold" style={{ color: 'var(--accent-color)' }}>Raça</h3>
                                      {selectedRacaData ? <p className="text-sm opacity-80 mt-1">{selectedRacaData.nome.split(' (')[0]}: {selectedRacaData.descricao}</p> : <p className="text-sm opacity-70 italic">Nenhuma.</p>}
-                                     <button onClick={() => setRacasPanelOpen(true)} className="w-full mt-2 py-2 px-4 bg-amber-800 hover:bg-amber-700 rounded-md transition text-white text-sm">Gerenciar</button>
+                                     <div className="grid grid-cols-2 gap-2 mt-2">
+                                        <button onClick={() => setRacasPanelOpen(true)} className="py-2 px-4 bg-amber-800 hover:bg-amber-700 rounded-md transition text-white text-sm">Gerenciar</button>
+                                        <button onClick={openExclusionModal} className="py-2 px-4 bg-red-900 hover:bg-red-800 rounded-md transition text-white text-sm" disabled={!currentFicha.racaSelecionada}>Excluir...</button>
+                                     </div>
                                 </div>
                                 <div className="grid grid-cols-2 gap-2">
                                     <button onClick={() => setNotesModalOpen(true)} className="py-2 px-4 bg-stone-700 hover:bg-stone-600 rounded-md text-white">Anotações</button>
@@ -3388,6 +3581,12 @@ const App: React.FC = () => {
                         <button onClick={handleCreateFicha} className="px-4 py-2 bg-amber-700 rounded text-white">Criar</button>
                     </div>
                 </Modal>
+            )}
+            {isNpcGeneratorOpen && (
+                 <NpcGeneratorModal
+                    onClose={() => setNpcGeneratorOpen(false)}
+                    onGenerate={handleGenerateNpc}
+                 />
             )}
             {isCustomizationOpen && (
                 <CustomizationModal 
