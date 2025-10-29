@@ -285,6 +285,41 @@ const classesData: Classe[] = [
             { nome: "Resistência natural", nivel: 30, tipo: 'passiva', descricao: "Passivamente aumenta sua Redução de Dano Físico em 10 pontos permanentemente.", dano: "+10 RDF", efeito: { atributo: 'rdf', valor: 10 }, custoPVSemAlma: 20 },
         ]
     },
+    {
+        nome: "Mago",
+        custo: 6,
+        descricao: "Mestres das artes arcanas, os magos manipulam os elementos e a realidade para desintegrar inimigos, proteger aliados e desvendar os mistérios do universo.",
+        habilidades: [
+            // Nível 1
+            { nome: "Bola de fogo", nivel: 1, tipo: 'ataque', descricao: "Você conjura uma bola de fogo do tamanho de uma bola de boliche. Cooldown: 2 turnos.", dano: "15 + Ataque Mágico + 1d20 + queimadura (1d6 dano por 1d6 turnos)", custoMagia: 20, custoVigor: 0, custoPVSemAlma: 3 },
+            { nome: "Escudo de gelo flutuante", nivel: 1, tipo: 'defesa', descricao: "Conjura um escudo de gelo por 1 turno. Dano de fogo reduz o RDM do escudo em 50%. Cooldown: 2 turnos.", dano: "+20 RDF, +20 RDM", custoMagia: 20, custoVigor: 0, custoPVSemAlma: 4 },
+            { nome: "Aptidão Mágica", nivel: 1, tipo: 'passiva', descricao: "Escolha um elemento ou tipo de magia (fogo, luz, etc). Magias desse tipo causam 15% a mais de dano.", dano: "+15% dano mágico para o tipo escolhido", custoPVSemAlma: 5 },
+            // Nível 5
+            { nome: "Transfiguração", nivel: 5, tipo: 'ataque', descricao: "Transforma o oponente em um animal aleatório (1d20 define) por 1d4 turnos. Você não pode atacar enquanto mantém a magia. Casting: 1 turno. Cooldown: 4 turnos.", dano: "Redefine atributos do oponente", custoMagia: 45, custoVigor: 0, custoPVSemAlma: 5 },
+            { nome: "Cura revigorante", nivel: 5, tipo: 'defesa', descricao: "Cura uma porcentagem da sua vida total (1d12: 1-4=10%, 5-8=20%, 9-12=30%). Casting: 1 turno. Cooldown: 3 turnos.", dano: "Cura 10/20/30% Vida Total", custoMagia: 40, custoVigor: 0, custoPVSemAlma: 6 },
+            { nome: "Rastreio Mágico", nivel: 5, tipo: 'passiva', descricao: "Pode identificar a presença e o tipo de magias usadas em uma área nos últimos 2 dias.", custoPVSemAlma: 7 },
+            // Nível 10
+            { nome: "Conjurador", nivel: 10, tipo: 'ataque', descricao: "Invoca um ser elemental por 3 turnos. Regeneração de magia bloqueada enquanto ativo. Casting: 2 turnos. Cooldown: 5 turnos.", dano: "Elemental (70% Atq. Mágico + 1d20 + efeito 1d6/1d4)", custoMagia: 150, custoVigor: 0, custoPVSemAlma: 7 },
+            { nome: "Areia movediça", nivel: 10, tipo: 'ataque', descricao: "Transforma o chão em areia movediça, impedindo movimento dos inimigos (e aliados próximos) por 1 turno. Cooldown: 3 turnos.", dano: "Imobiliza inimigos", custoMagia: 120, custoVigor: 0, custoPVSemAlma: 8 },
+            { nome: "Portal", nivel: 10, tipo: 'passiva', descricao: "Permite criar portais para locais previamente marcados. Invocação de 20 turnos, não pode ser usada em batalha. 1x por sessão.", custoPVSemAlma: 9 },
+            // Nível 15
+            { nome: "Chuva de raios", nivel: 15, tipo: 'ataque', descricao: "Raios caem aleatoriamente no campo por 2 turnos. Requer conjuração contínua. Chance de 10+ em 1d20 para acertar cada personagem. Cooldown: 4 turnos.", dano: "Ataque Mágico + 50 por raio", custoMagia: 150, custoVigor: 0, custoPVSemAlma: 9 },
+            { nome: "Anulação de ataque mágico", nivel: 15, tipo: 'defesa', descricao: "Anula um ataque mágico inimigo com um teste de Acerto + 7 contra o acerto do oponente. Cooldown: 3 turnos.", dano: "Anula magia", custoMagia: 100, custoVigor: 0, custoPVSemAlma: 10 },
+            { nome: "Combo de Magias Úteis", nivel: 15, tipo: 'passiva', descricao: "Aprende magias utilitárias como levitar objetos pequenos, abrir fechaduras simples, etc.", custoPVSemAlma: 11 },
+            // Nível 20
+            { nome: "Gigante de gelo", nivel: 20, tipo: 'ataque', descricao: "Cria um gigante de gelo por 1d6 turnos. Casting: 3 turnos. Cooldown: 1x por batalha. Fraqueza a calor.", dano: "Gigante (Atq. Físico = 150% do seu Atq. Mágico, Vida = 2x sua vida) + Congelamento", custoMagia: 300, custoVigor: 0, custoPVSemAlma: 11 },
+            { nome: "Cúpula de rocha", nivel: 20, tipo: 'defesa', descricao: "Cria uma cúpula de rocha com 3000 de vida. Duração indeterminada. Casting: 3 turnos. Cooldown: 1x por batalha.", dano: "3000 de vida", custoMagia: 350, custoVigor: 0, custoPVSemAlma: 12 },
+            { nome: "Fly", nivel: 20, tipo: 'passiva', descricao: "Permite voar. Aumenta a velocidade de movimento em +100 km/h. Lutar enquanto voa alto é impossível.", efeito: { atributo: 'velocidadeCorrida', valor: 100 }, custoPVSemAlma: 13 },
+            // Nível 25
+            { nome: "Bola de fogo Superior", nivel: 25, tipo: 'ataque', descricao: "Lança uma bola de fogo explosiva. Cooldown: 2 turnos.", dano: "60 + Ataque Mágico + Queimadura (Explosão: Atq. Mágico + 1d20)", custoMagia: 150, custoVigor: 0, custoPVSemAlma: 13 },
+            { nome: "Sapatinho de fogo", nivel: 25, tipo: 'defesa', descricao: "Causa combustão sob seus pés, aumentando a velocidade e esquiva por 3 turnos. Custo de 2 de vigor por turno. Cooldown: 3 turnos.", dano: "+10 Esquiva", custoMagia: 120, custoVigor: 2, custoPVSemAlma: 14 },
+            { nome: "Bolsa mágica", nivel: 25, tipo: 'passiva', descricao: "Concede um inventário mágico de capacidade ilimitada e peso nulo.", custoPVSemAlma: 15 },
+            // Nível 30
+            { nome: "Lua de pedra", nivel: 30, tipo: 'ataque', descricao: "Cria e arremessa uma lua de pedra no campo de batalha. Casting: 2 turnos. Cooldown: 1x por batalha.", dano: "Ataque Mágico + 150 + 3d20 + Esmagamento em crítico", custoMagia: 300, custoVigor: 0, custoPVSemAlma: 15 },
+            { nome: "Teleporte", nivel: 30, tipo: 'defesa', descricao: "Esquiva instantaneamente de um golpe direto, reaparecendo a até 10 metros de distância. Cooldown: 3 turnos.", dano: "Esquiva instantânea", custoMagia: 150, custoVigor: 0, custoPVSemAlma: 16 },
+            { nome: "Fonte de magia", nivel: 30, tipo: 'passiva', descricao: "Com menos de 20% de MP, jogue 1d20. Se o resultado for 15+, recupera 50% da sua magia total. 1x por sessão.", custoPVSemAlma: 20 },
+        ]
+    },
      {
         nome: "Paladino",
         custo: 6,
@@ -2473,7 +2508,7 @@ const NotesModal: React.FC<NotesModalProps> = ({ notes, onUpdate, onClose }) => 
                 onChange={(e) => onUpdate(e.target.value)}
                 className="w-full h-64 p-2 bg-stone-700 border border-stone-600 rounded-md resize-none focus:ring-amber-500 focus:border-amber-500"
                 placeholder="Suas anotações aqui..."
-                style={{ color: 'var(--text-color)'}}
+                style={{ color: 'var(--text-color)' }}
             />
             <div className="flex justify-end mt-4">
                  <button
