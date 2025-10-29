@@ -255,12 +255,34 @@ const classesData: Classe[] = [
         custo: 5,
         descricao: "Mestres do combate corporal, os guerreiros confiam em sua força, habilidade com armas e resistência para superar seus inimigos no campo de batalha.",
         habilidades: [
-            { nome: "Golpe Poderoso", nivel: 1, tipo: 'ataque', descricao: "Um ataque focado que causa dano extra, mas te deixa vulnerável.", dano: "Ataque +5. Efeito Negativo: RDF -2 por 1 turno.", custoMagia: 0, custoVigor: 2, custoPVSemAlma: 3 },
-            { nome: "Postura de Defesa", nivel: 1, tipo: 'defesa', descricao: "Assume uma postura defensiva, aumentando sua capacidade de resistir a golpes.", dano: "RDF +3 por 2 turnos.", custoMagia: 0, custoVigor: 1, custoPVSemAlma: 3 },
-            { nome: "Vigor de Batalha", nivel: 1, tipo: 'passiva', descricao: "Sua resiliência natural é aprimorada. Bônus: +10 Vida Total.", efeito: { atributo: 'vidaTotal', valor: 10 }, custoPVSemAlma: 5 },
-            { nome: "Ataque Duplo", nivel: 5, tipo: 'ataque', descricao: "Um rápido segundo golpe com sua arma.", dano: "2x (Ataque - 2).", custoMagia: 0, custoVigor: 3, custoPVSemAlma: 5 },
-            { nome: "Bloqueio com Arma", nivel: 5, tipo: 'defesa', descricao: "Usa sua arma para aparar um ataque inimigo.", dano: "RDF +5 por 1 turno.", custoMagia: 0, custoVigor: 2, custoPVSemAlma: 5 },
-            { nome: "Pele de Aço", nivel: 5, tipo: 'passiva', descricao: "Sua pele se torna mais resistente a danos. Bônus: RDF +1.", efeito: { atributo: 'rdf', valor: 1 }, custoPVSemAlma: 7 },
+            // Nível 1
+            { nome: "Golpe Preciso", nivel: 1, tipo: 'ataque', descricao: "Você se concentra em acertar o ponto mais vulnerável possível do oponente. Cooldown: 2 turnos.", dano: "15 + 1d20 + 1d6", custoMagia: 0, custoVigor: 2, custoPVSemAlma: 3 },
+            { nome: "Braços de escudo", nivel: 1, tipo: 'defesa', descricao: "Você levanta a guarda recebendo o golpe nos braços amenizando o dano. Cooldown: 1 turno.", dano: "+12 RDF", custoMagia: 0, custoVigor: 2, custoPVSemAlma: 3 },
+            { nome: "Saúde de um Cavalo", nivel: 1, tipo: 'passiva', descricao: "Habilidade passiva que concede +25 de Vida permanentemente.", dano: "+25 Vida Total", efeito: { atributo: 'vidaTotal', valor: 25 }, custoPVSemAlma: 5 },
+            // Nível 5
+            { nome: "Combo espada e escudo", nivel: 5, tipo: 'ataque', descricao: "Requer espada e escudo. Um corte rápido seguido por uma pancada com o escudo. Cooldown: 2 turnos.", dano: "Espada: 20 + Atq. Físico + 1d20 / Escudo: 5 + Atq. Físico + 1d20", custoMagia: 0, custoVigor: 4, custoPVSemAlma: 5 },
+            { nome: "Muralha de escudo", nivel: 5, tipo: 'defesa', descricao: "Requer escudo. Aumenta drasticamente sua defesa por 3 turnos, mas causa fadiga. Efeito Negativo: -15 de ataque por 1 turno após o efeito.", dano: "+20 RDF + RDF do escudo", custoMagia: 0, custoVigor: 3, custoPVSemAlma: 5 },
+            { nome: "Folego instantâneo", nivel: 5, tipo: 'passiva', descricao: "Recupera 1d12 de vigor quando seu vigor chega a zero. Usável 1 vez por batalha.", dano: "Recupera 1d12 Vigor", custoPVSemAlma: 7 },
+            // Nível 10
+            { nome: "Golpes Múltiplos", nivel: 10, tipo: 'ataque', descricao: "Ataque 3 vezes no mesmo turno com redutores de acerto (-2 no segundo, -5 no terceiro). Cooldown: 4 turnos.", dano: "3x (Ataque + 1d20)", custoMagia: 0, custoVigor: 9, custoPVSemAlma: 7 },
+            { nome: "Pele de pedra", nivel: 10, tipo: 'defesa', descricao: "A adrenalina endurece seus músculos. Dura 3 turnos, Casting Time de 1 turno. Cooldown: 4 turnos. Efeito Negativo: +15% de dano sofrido por 2 turnos após o efeito.", dano: "+3d20 RDF, +2 RDM", custoMagia: 0, custoVigor: 9, custoPVSemAlma: 7 },
+            { nome: "Grito de guerra", nivel: 10, tipo: 'passiva', descricao: "Buffa até dois aliados aleatórios com +10 de ataque, +2 de acerto e +2 de esquiva por 2 turnos. 1 vez por batalha.", dano: "Buff em 2 aliados", custoPVSemAlma: 9 },
+            // Nível 15
+            { nome: "Corte Pulverizador", nivel: 15, tipo: 'ataque', descricao: "Corte de longo alcance que atinge até 3 oponentes e causa sangramento. Cooldown: 4 turnos. Efeito Negativo: 1 turno de fadiga sem ação.", dano: "50 + 3d20 + sangramento (1d12 por 1d6 turnos)", custoMagia: 0, custoVigor: 15, custoPVSemAlma: 9 },
+            { nome: "Dança da lâmina", nivel: 15, tipo: 'ataque', descricao: "Um contra-ataque que exige que você receba o golpe do inimigo. Cooldown: 4 turnos.", dano: "Ataque + 1d20 (no turno do oponente)", custoMagia: 0, custoVigor: 8, custoPVSemAlma: 9 },
+            { nome: "Senso de perigo", nivel: 15, tipo: 'passiva', descricao: "Passivamente sente quando um oponente é significativamente mais forte (5+ níveis acima).", custoPVSemAlma: 11 },
+            // Nível 20
+            { nome: "Conjuração de espadas", nivel: 20, tipo: 'ataque', descricao: "Invoca duas espadas flutuantes que atacam com você por 1d6 turnos. Casting Time: 1 turno. Cooldown: 5 turnos.", dano: "3 ataques/turno (50% acerto, dano de Ataque Físico)", custoMagia: 100, custoVigor: 18, custoPVSemAlma: 11 },
+            { nome: "Conjurador de escudo", nivel: 20, tipo: 'defesa', descricao: "Conjura um escudo gigante que anula dano bruto por 1 turno para até 4 aliados. Cooldown: 3 turnos.", dano: "Imunidade a dano bruto", custoMagia: 80, custoVigor: 12, custoPVSemAlma: 11 },
+            { nome: "Magnetismo magico", nivel: 20, tipo: 'passiva', descricao: "Sua arma pessoal sempre retornará à sua mão se for derrubada (alcance de 1km).", custoPVSemAlma: 13 },
+            // Nível 25
+            { nome: "Conjuração temporária", nivel: 25, tipo: 'ataque', descricao: "Invoca uma espada poderosa por 3 turnos (+30 de ataque). Custo de 3 de vigor por ataque. Cooldown: 5 turnos.", dano: "+30 Ataque", custoMagia: 50, custoVigor: 0, custoPVSemAlma: 13 },
+            { nome: "Quanto mais dor, mais forte", nivel: 25, tipo: 'defesa', descricao: "Por 4 turnos, ganha +10% do dano sofrido como bônus de ataque (acumulativo, reseta ao atacar). Custa 1 de vigor por dano recebido e 2 por ataque com bônus. Cooldown: 5 turnos.", dano: "Bônus de Ataque", custoMagia: 0, custoVigor: 0, custoPVSemAlma: 13 },
+            { nome: "Visão de batalha", nivel: 25, tipo: 'passiva', descricao: "Uma vez por batalha, pode descobrir os pontos de ataque de um oponente.", custoPVSemAlma: 15 },
+            // Nível 30
+            { nome: "Furacão de lâminas", nivel: 30, tipo: 'ataque', descricao: "Ataque em área devastador (30m de diâmetro) que pode atingir aliados. Casting Time: 2 turnos, Duração: 2 turnos. Cooldown: 1x por batalha. Efeito Negativo: 2 turnos de tontura.", dano: "Ataque Físico + 100 + 4d20", custoMagia: 0, custoVigor: 25, custoPVSemAlma: 15 },
+            { nome: "Imunidade a Dano fisico", nivel: 30, tipo: 'defesa', descricao: "Torna-se imune a dano físico por 2 turnos, contanto que o dano não seja o dobro da sua vida. Cooldown: 1x por dia. Efeito Negativo: +30% de dano sofrido por 2 turnos após o efeito.", dano: "Imunidade a dano físico", custoMagia: 0, custoVigor: 25, custoPVSemAlma: 15 },
+            { nome: "Resistência natural", nivel: 30, tipo: 'passiva', descricao: "Passivamente aumenta sua Redução de Dano Físico em 10 pontos permanentemente.", dano: "+10 RDF", efeito: { atributo: 'rdf', valor: 10 }, custoPVSemAlma: 20 },
         ]
     },
      {
@@ -3553,6 +3575,14 @@ const ClasseHabilidadesModal: React.FC<ClasseHabilidadesModalProps> = ({
     const [tempAdquiridas, setTempAdquiridas] = useState<string[]>([]);
     const [tempCompradasComPV, setTempCompradasComPV] = useState<string[]>([]);
 
+    const skillsByLevel = useMemo(() => {
+        if (!selectedClasseData) return {};
+        return selectedClasseData.habilidades.reduce((acc, skill) => {
+            (acc[skill.nivel] = acc[skill.nivel] || []).push(skill);
+            return acc;
+        }, {} as Record<number, ClasseHabilidade[]>);
+    }, [selectedClasseData]);
+
     if (!selectedClasseData) {
         return (
             <Modal title="Habilidades de Classe" onClose={onClose}>
@@ -3652,56 +3682,62 @@ const ClasseHabilidadesModal: React.FC<ClasseHabilidadesModalProps> = ({
                     </div>
                 </div>
 
-                <div className="space-y-3">
-                    {selectedClasseData.habilidades.map(habilidade => {
-                        const isAvailable = ficha.nivel >= habilidade.nivel;
-                        const isAcquired = ficha.habilidadesClasseAdquiridas.includes(habilidade.nome);
-                        const isSelected = tempAdquiridas.includes(habilidade.nome);
-                        const isBoughtWithPV = tempCompradasComPV.includes(habilidade.nome);
+                <div className="space-y-4">
+                    {Object.keys(skillsByLevel).sort((a, b) => Number(a) - Number(b)).map(levelStr => {
+                        const level = Number(levelStr);
+                        if (ficha.nivel < level) return null;
 
-                        let statusText = '';
-                        let statusColor = '';
-                        if(isAcquired) {
-                            statusText = 'Adquirida';
-                            statusColor = 'text-green-400';
-                        } else if (!isAvailable) {
-                            statusText = `Nível ${habilidade.nivel}`;
-                            statusColor = 'text-stone-500';
-                        }
-
-                        let buttonText = 'Adquirir';
-                        if (isSelected) {
-                            buttonText = isBoughtWithPV ? `Usando ${habilidade.custoPVSemAlma} PV` : 'Usando 1 Alma';
-                        }
-
-                        const canAfford = almasRestantes > 0 || pvRestantes >= habilidade.custoPVSemAlma;
-
+                        const habilidades = skillsByLevel[level];
+                        
                         return (
-                            <div key={habilidade.nome} className="p-3 rounded-lg border" style={{...componentStyle, borderColor: isSelected ? 'var(--accent-color)' : 'var(--border-color)'}}>
-                                <div className="flex justify-between items-start">
-                                    <div>
-                                        <h4 className="font-bold text-lg">{habilidade.nome}</h4>
-                                        <p className="text-sm opacity-80">{habilidade.descricao}</p>
-                                    </div>
-                                    <span className={`text-xs font-bold whitespace-nowrap ${statusColor}`}>{statusText}</span>
-                                </div>
-                                <div className="text-xs opacity-70 mt-2 flex flex-wrap gap-x-4">
-                                    {habilidade.custoMagia !== undefined && <span>✨ Magia: {habilidade.custoMagia}</span>}
-                                    {habilidade.custoVigor !== undefined && <span>⚡ Vigor: {habilidade.custoVigor}</span>}
-                                    {habilidade.dano && <span>💥 Dano/Efeito: {habilidade.dano}</span>}
-                                </div>
+                            <div key={level}>
+                                <h3 className="font-medieval text-xl mb-2" style={{ color: 'var(--accent-color)' }}>Nível {level}</h3>
+                                <div className="space-y-3">
+                                {habilidades.map(habilidade => {
+                                    const isAcquired = ficha.habilidadesClasseAdquiridas.includes(habilidade.nome);
+                                    const isSelected = tempAdquiridas.includes(habilidade.nome);
+                                    const isBoughtWithPV = tempCompradasComPV.includes(habilidade.nome);
 
-                                {!isAcquired && isAvailable && (
-                                    <div className="mt-3 text-right">
-                                        <button 
-                                            onClick={() => handleAcquireSkill(habilidade)}
-                                            disabled={!canAfford && !isSelected}
-                                            className={`btn-interactive px-4 py-2 text-sm rounded-md disabled:opacity-50 disabled:cursor-not-allowed ${isSelected ? 'bg-amber-800' : 'bg-stone-700 hover:bg-stone-600'} text-white`}
-                                        >
-                                            {buttonText}
-                                        </button>
-                                    </div>
-                                )}
+                                    const statusText = isAcquired ? 'Adquirida' : '';
+                                    const statusColor = isAcquired ? 'text-green-400' : '';
+                                    
+                                    let buttonText = 'Adquirir';
+                                    if (isSelected) {
+                                        buttonText = isBoughtWithPV ? `Usando ${habilidade.custoPVSemAlma} PV` : 'Usando 1 Alma';
+                                    }
+
+                                    const canAfford = almasRestantes > 0 || pvRestantes >= habilidade.custoPVSemAlma;
+                                    
+                                    return (
+                                        <div key={habilidade.nome} className="p-3 rounded-lg border" style={{...componentStyle, borderColor: isSelected ? 'var(--accent-color)' : 'var(--border-color)'}}>
+                                            <div className="flex justify-between items-start">
+                                                <div>
+                                                    <h4 className="font-bold text-lg">{habilidade.nome}</h4>
+                                                    <p className="text-sm opacity-80">{habilidade.descricao}</p>
+                                                </div>
+                                                <span className={`text-xs font-bold whitespace-nowrap ${statusColor}`}>{statusText}</span>
+                                            </div>
+                                            <div className="text-xs opacity-70 mt-2 flex flex-wrap gap-x-4">
+                                                {habilidade.custoMagia !== undefined && <span>✨ Magia: {habilidade.custoMagia}</span>}
+                                                {habilidade.custoVigor !== undefined && <span>⚡ Vigor: {habilidade.custoVigor}</span>}
+                                                {habilidade.dano && <span>💥 Dano/Efeito: {habilidade.dano}</span>}
+                                            </div>
+
+                                            {!isAcquired && (
+                                                <div className="mt-3 text-right">
+                                                    <button 
+                                                        onClick={() => handleAcquireSkill(habilidade)}
+                                                        disabled={!canAfford && !isSelected}
+                                                        className={`btn-interactive px-4 py-2 text-sm rounded-md disabled:opacity-50 disabled:cursor-not-allowed ${isSelected ? 'bg-amber-800' : 'bg-stone-700 hover:bg-stone-600'} text-white`}
+                                                    >
+                                                        {buttonText}
+                                                    </button>
+                                                </div>
+                                            )}
+                                        </div>
+                                    );
+                                })}
+                                </div>
                             </div>
                         );
                     })}
