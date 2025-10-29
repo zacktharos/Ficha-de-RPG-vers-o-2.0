@@ -63,8 +63,13 @@ interface Ficha {
     pontosHabilidadeDisponiveis: number;
     pontosVantagemTotais: number;
     
-    classeNome: string;
-    classeDescricao: string;
+    classeSelecionada: string | null;
+    habilidadesClasseAdquiridas: string[];
+    habilidadesClasseCompradasComPV: string[];
+    almasTotais: number;
+    almasGastas: number;
+    showClasseSkillsNotification: boolean;
+
 
     anotacoes: string;
     lockedAtributos: {
@@ -114,6 +119,7 @@ interface Magia {
     custoVigor: number;
     dano: string;
     tipo: string;
+    isClassSkill?: boolean;
 }
 
 interface Vantagem {
@@ -135,6 +141,29 @@ interface Raca {
     descricao: string;
     vantagens: string[];
 }
+
+interface ClasseHabilidade {
+    nome: string;
+    nivel: number;
+    tipo: 'ataque' | 'defesa' | 'passiva';
+    descricao: string;
+    dano?: string;
+    custoMagia?: number;
+    custoVigor?: number;
+    efeito?: { 
+        atributo: keyof Ficha; 
+        valor: number;
+    };
+    custoPVSemAlma: number;
+}
+
+interface Classe {
+    nome: string;
+    custo: number; // Custo em Pontos de Vantagem para adquirir a classe
+    descricao: string;
+    habilidades: ClasseHabilidade[];
+}
+
 
 interface NivelInfo {
     nivel: number;
@@ -220,6 +249,33 @@ const racasData: Raca[] = [
     { nome: "Meio Animal (Selvagem) (4)", custo: 4, descricao: "Instinto primal com astúcia.", vantagens: ["Sentidos Predatórios: Escolha um sentido aguçado.", "Senhor dos Terrenos: Adapta-se a 1 ambiente.", "Frenesi Instintivo: 1x/dia, velocidade e ataques extras."] }
 ];
 
+const classesData: Classe[] = [
+    {
+        nome: "Guerreiro",
+        custo: 5,
+        descricao: "Mestres do combate corporal, os guerreiros confiam em sua força, habilidade com armas e resistência para superar seus inimigos no campo de batalha.",
+        habilidades: [
+            { nome: "Golpe Poderoso", nivel: 1, tipo: 'ataque', descricao: "Um ataque focado que causa dano extra, mas te deixa vulnerável.", dano: "Ataque +5. Efeito Negativo: RDF -2 por 1 turno.", custoMagia: 0, custoVigor: 2, custoPVSemAlma: 3 },
+            { nome: "Postura de Defesa", nivel: 1, tipo: 'defesa', descricao: "Assume uma postura defensiva, aumentando sua capacidade de resistir a golpes.", dano: "RDF +3 por 2 turnos.", custoMagia: 0, custoVigor: 1, custoPVSemAlma: 3 },
+            { nome: "Vigor de Batalha", nivel: 1, tipo: 'passiva', descricao: "Sua resiliência natural é aprimorada. Bônus: +10 Vida Total.", efeito: { atributo: 'vidaTotal', valor: 10 }, custoPVSemAlma: 5 },
+            { nome: "Ataque Duplo", nivel: 5, tipo: 'ataque', descricao: "Um rápido segundo golpe com sua arma.", dano: "2x (Ataque - 2).", custoMagia: 0, custoVigor: 3, custoPVSemAlma: 5 },
+            { nome: "Bloqueio com Arma", nivel: 5, tipo: 'defesa', descricao: "Usa sua arma para aparar um ataque inimigo.", dano: "RDF +5 por 1 turno.", custoMagia: 0, custoVigor: 2, custoPVSemAlma: 5 },
+            { nome: "Pele de Aço", nivel: 5, tipo: 'passiva', descricao: "Sua pele se torna mais resistente a danos. Bônus: RDF +1.", efeito: { atributo: 'rdf', valor: 1 }, custoPVSemAlma: 7 },
+        ]
+    },
+     {
+        nome: "Paladino",
+        custo: 6,
+        descricao: "Guerreiros sagrados que canalizam poder divino para proteger os inocentes e punir o mal, combinando habilidades marciais com magias de cura e proteção.",
+        habilidades: [
+            { nome: "Golpe Divino", nivel: 1, tipo: 'ataque', descricao: "Infunde sua arma com energia sagrada.", dano: "Ataque +3 de dano mágico.", custoMagia: 2, custoVigor: 1, custoPVSemAlma: 3 },
+            { nome: "Bênção da Cura", nivel: 1, tipo: 'defesa', descricao: "Invoca uma luz curativa.", dano: "Cura 15 de Vida.", custoMagia: 3, custoVigor: 0, custoPVSemAlma: 4 },
+            { nome: "Aura de Proteção", nivel: 1, tipo: 'passiva', descricao: "Uma aura divina te protege de danos mágicos. Bônus: RDM +2.", efeito: { atributo: 'rdm', valor: 2 }, custoPVSemAlma: 5 },
+        ]
+    },
+];
+
+
 const nivelData: NivelInfo[] = [
     { nivel: 0, xp: 0, pd: 25, ph: 8 }, { nivel: 1, xp: 10, pd: 31, ph: 9 }, { nivel: 2, xp: 30, pd: 37, ph: 10 },
     { nivel: 3, xp: 60, pd: 43, ph: 11 }, { nivel: 4, xp: 100, pd: 49, ph: 12 }, { nivel: 5, xp: 150, pd: 55, ph: 13 },
@@ -277,6 +333,24 @@ const calcularAtributos = (ficha: Ficha): Ficha => {
     newFicha.regeneracaoVida = parseFloat((0.2 * constituicao).toFixed(1)) + (adj.regeneracaoVida || 0);
     newFicha.regeneracaoMagia = parseFloat((0.8 * constituicao).toFixed(1)) + (adj.regeneracaoMagia || 0);
     newFicha.regeneracaoVigor = parseFloat((0.4 * constituicao).toFixed(1)) + (adj.regeneracaoVigor || 0);
+
+    // Passive Class Skill Bonuses
+    if (newFicha.classeSelecionada && newFicha.habilidadesClasseAdquiridas.length > 0) {
+        const classe = classesData.find(c => c.nome === newFicha.classeSelecionada);
+        if (classe) {
+            newFicha.habilidadesClasseAdquiridas.forEach(nomeHabilidade => {
+                const habilidade = classe.habilidades.find(h => h.nome === nomeHabilidade);
+                if (habilidade?.efeito && habilidade.tipo === 'passiva') {
+                    const { atributo, valor } = habilidade.efeito;
+                    if (typeof newFicha[atributo] === 'number') {
+                        // This is a type assertion to tell TypeScript it's safe
+                        (newFicha as any)[atributo] += valor;
+                    }
+                }
+            });
+        }
+    }
+
 
     // Skill Points
     const pdGastos = forca + destreza + agilidade + constituicao + inteligencia;
@@ -396,8 +470,12 @@ const createDefaultFicha = (id: string, nomeFicha: string): Ficha => ({
     experiencia: 0,
     lockedExperiencia: 0,
     nivel: 0, pontosHabilidadeTotais: 25, pontosHabilidadeDisponiveis: 25, pontosVantagemTotais: 8,
-    classeNome: '',
-    classeDescricao: '',
+    classeSelecionada: null,
+    habilidadesClasseAdquiridas: [],
+    habilidadesClasseCompradasComPV: [],
+    almasTotais: 0,
+    almasGastas: 0,
+    showClasseSkillsNotification: false,
     anotacoes: '',
     gmAdjustments: {},
     // Character Image
@@ -454,16 +532,27 @@ const useCharacterSheet = () => {
             
             const oldLevel = oldFicha.nivel;
             const nivelInfo = [...nivelData].reverse().find(data => newFicha.experiencia >= data.xp) || nivelData[0];
+            const newLevel = nivelInfo.nivel;
             
-            newFicha.nivel = nivelInfo.nivel;
+            newFicha.nivel = newLevel;
             newFicha.pontosHabilidadeTotais = nivelInfo.pd + (newFicha.gmAdjustments?.pontosHabilidadeTotais || 0);
             newFicha.pontosVantagemTotais = nivelInfo.ph + (newFicha.gmAdjustments?.pontosVantagemTotais || 0);
             
-            if (newFicha.nivel > oldLevel) {
+            if (newLevel > oldLevel) {
                 setLevelUpEffect(true);
-                setTimeout(() => {
-                    setLevelUpEffect(false);
-                }, 3000); // 3 seconds glow
+                setTimeout(() => setLevelUpEffect(false), 3000);
+
+                const keyLevels = [1, 5, 10, 15, 20, 25, 30];
+                let almasGanhadas = 0;
+                for (let i = oldLevel + 1; i <= newLevel; i++) {
+                    if (keyLevels.includes(i)) {
+                        almasGanhadas++;
+                    }
+                }
+                if(almasGanhadas > 0) {
+                    newFicha.almasTotais = (oldFicha.almasTotais || 0) + almasGanhadas;
+                    newFicha.showClasseSkillsNotification = true;
+                }
             }
 
             newFicha.pesoTotal = newFicha.inventario.reduce((sum, item) => sum + (item.peso || 0), 0);
@@ -537,6 +626,7 @@ const useCharacterSheet = () => {
                     custoVigor: parseFloat(magia?.custoVigor as any) || 0,
                     dano: String(magia?.dano || ''),
                     tipo: String(magia?.tipo || ''),
+                    isClassSkill: !!magia?.isClassSkill,
                 }));
             } else {
                 ficha.magiasHabilidades = defaultFichaTemplate.magiasHabilidades;
@@ -804,17 +894,19 @@ const useCharacterSheet = () => {
         });
     }, [currentFichaId, fichas, saveFichasToStorage]);
 
-    const excludeItems = useCallback((itemsToRemove: { vantagens: string[], desvantagens: string[], removeRaca: boolean }) => {
+    const excludeItems = useCallback((itemsToRemove: { vantagens: string[], desvantagens: string[], removeRaca: boolean, removeClasse: boolean }) => {
         const current = fichas[currentFichaId];
         if (current) {
             const newVantagens = current.vantagens.filter(v => !itemsToRemove.vantagens.includes(v));
             const newDesvantagens = current.desvantagens.filter(d => !itemsToRemove.desvantagens.includes(d));
             const newRaca = itemsToRemove.removeRaca ? null : current.racaSelecionada;
+            const newClasse = itemsToRemove.removeClasse ? null : current.classeSelecionada;
             
             updateFicha(currentFichaId, { 
                 vantagens: newVantagens, 
                 desvantagens: newDesvantagens,
-                racaSelecionada: newRaca
+                racaSelecionada: newRaca,
+                classeSelecionada: newClasse
             });
         }
     }, [currentFichaId, fichas, updateFicha]);
@@ -844,6 +936,12 @@ const useCharacterSheet = () => {
             accentColor: defaults.accentColor,
         });
     }, [currentFichaId, updateFicha]);
+
+    const resetClasseNotification = useCallback(() => {
+        if(fichas[currentFichaId]?.showClasseSkillsNotification) {
+            updateFicha(currentFichaId, { showClasseSkillsNotification: false });
+        }
+      }, [fichas, currentFichaId, updateFicha]);
     
     const rollDice = useCallback((max: number) => {
         const result = Math.floor(Math.random() * max) + 1;
@@ -896,6 +994,20 @@ const useCharacterSheet = () => {
             const raca = racasData.find(r => r.nome === ficha.racaSelecionada);
             if (raca) phBase -= raca.custo;
         }
+        if (ficha.classeSelecionada) {
+            const classe = classesData.find(c => c.nome === ficha.classeSelecionada);
+            if (classe) {
+                phBase -= classe.custo;
+                if (ficha.habilidadesClasseCompradasComPV?.length > 0) {
+                    ficha.habilidadesClasseCompradasComPV.forEach(nomeHabilidade => {
+                        const habilidade = classe.habilidades.find(h => h.nome === nomeHabilidade);
+                        if (habilidade) {
+                            phBase -= habilidade.custoPVSemAlma;
+                        }
+                    });
+                }
+            }
+        }
 
         return phBase;
     }, [fichas, currentFichaId]);
@@ -928,6 +1040,7 @@ const useCharacterSheet = () => {
         toggleGmMode,
         updateGmAdjustment,
         levelUpEffect,
+        resetClasseNotification,
     };
 };
 
@@ -1041,9 +1154,10 @@ interface ModalProps {
     title: string;
     onClose: () => void;
     children: React.ReactNode;
+    className?: string;
 }
 
-const Modal: React.FC<ModalProps> = ({ title, onClose, children }) => {
+const Modal: React.FC<ModalProps> = ({ title, onClose, children, className = '' }) => {
     const [isClosing, setIsClosing] = useState(false);
 
     const handleClose = () => {
@@ -1055,7 +1169,7 @@ const Modal: React.FC<ModalProps> = ({ title, onClose, children }) => {
     
     return (
         <div className={`fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4 ${isClosing ? 'modal-exit' : 'modal-enter'}`}>
-            <div className={`bg-stone-800 rounded-lg shadow-xl w-full max-w-md p-6 border border-stone-600 ${isClosing ? 'modal-content-exit' : 'modal-content-enter'}`} style={{ backgroundColor: 'var(--component-bg-color)' }}>
+            <div className={`bg-stone-800 rounded-lg shadow-xl w-full max-w-md p-6 border border-stone-600 ${isClosing ? 'modal-content-exit' : 'modal-content-enter'} ${className}`} style={{ backgroundColor: 'var(--component-bg-color)' }}>
                 <div className="flex justify-between items-center mb-4">
                     <h2 className="text-2xl font-medieval">{title}</h2>
                     <button onClick={handleClose} className="text-2xl hover:opacity-75 transition-opacity" style={{ color: 'var(--text-color)' }}>&times;</button>
@@ -1848,13 +1962,14 @@ const DiceRoller: React.FC<DiceRollerProps> = ({ onRoll, selectedAttribute, setS
 interface ExclusionModalProps {
     ficha: Ficha;
     onClose: () => void;
-    onConfirm: (items: { vantagens: string[], desvantagens: string[], removeRaca: boolean }) => void;
+    onConfirm: (items: { vantagens: string[], desvantagens: string[], removeRaca: boolean, removeClasse: boolean }) => void;
 }
 
 const ExclusionModal: React.FC<ExclusionModalProps> = ({ ficha, onClose, onConfirm }) => {
     const [selectedVantagens, setSelectedVantagens] = useState<string[]>([]);
     const [selectedDesvantagens, setSelectedDesvantagens] = useState<string[]>([]);
     const [removeRaca, setRemoveRaca] = useState<boolean>(false);
+    const [removeClasse, setRemoveClasse] = useState<boolean>(false);
 
     const toggleSelection = (list: string[], setList: React.Dispatch<React.SetStateAction<string[]>>, item: string) => {
         if (list.includes(item)) {
@@ -1865,7 +1980,7 @@ const ExclusionModal: React.FC<ExclusionModalProps> = ({ ficha, onClose, onConfi
     };
 
     const handleConfirm = () => {
-        if (selectedVantagens.length === 0 && selectedDesvantagens.length === 0 && !removeRaca) {
+        if (selectedVantagens.length === 0 && selectedDesvantagens.length === 0 && !removeRaca && !removeClasse) {
             alert("Nenhum item selecionado para exclusão.");
             return;
         }
@@ -1873,17 +1988,18 @@ const ExclusionModal: React.FC<ExclusionModalProps> = ({ ficha, onClose, onConfi
             vantagens: selectedVantagens,
             desvantagens: selectedDesvantagens,
             removeRaca,
+            removeClasse,
         });
         onClose();
     };
 
-    const hasItems = ficha.vantagens.length > 0 || ficha.desvantagens.length > 0 || ficha.racaSelecionada;
+    const hasItems = ficha.vantagens.length > 0 || ficha.desvantagens.length > 0 || ficha.racaSelecionada || ficha.classeSelecionada;
     const componentStyle = { backgroundColor: 'var(--component-bg-color)' };
 
     return (
         <Modal title="Excluir Itens da Ficha" onClose={onClose}>
             <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
-                {!hasItems && <p className="opacity-70">O personagem não possui vantagens, desvantagens ou raça para excluir.</p>}
+                {!hasItems && <p className="opacity-70">O personagem não possui vantagens, desvantagens, raça ou classe para excluir.</p>}
                 
                 {ficha.vantagens.length > 0 && (
                     <fieldset className="border border-stone-600 p-3 rounded-md">
@@ -1940,6 +2056,23 @@ const ExclusionModal: React.FC<ExclusionModalProps> = ({ ficha, onClose, onConfi
                         </label>
                     </fieldset>
                 )}
+                
+                {ficha.classeSelecionada && (
+                    <fieldset className="border border-stone-600 p-3 rounded-md">
+                        <legend className="px-2 font-medieval text-lime-400">Classe</legend>
+                        <label htmlFor="classe" className="flex items-center gap-3 p-2 bg-stone-900/50 rounded cursor-pointer hover:bg-stone-700" style={componentStyle}>
+                            <input
+                                type="checkbox"
+                                id="classe"
+                                checked={removeClasse}
+                                onChange={() => setRemoveClasse(!removeClasse)}
+                                className="w-4 h-4 text-amber-600 bg-stone-700 border-stone-500 rounded focus:ring-amber-500"
+                            />
+                            <span>{ficha.classeSelecionada}</span>
+                        </label>
+                    </fieldset>
+                )}
+
 
             </div>
             <div className="mt-6 flex justify-end gap-2">
@@ -2561,6 +2694,130 @@ const RacasPanel: React.FC<RacasPanelProps> = ({ ficha, pontosVantagemDisponivei
     );
 };
 
+// --- ClassesPanel.tsx ---
+interface ClassesPanelProps {
+    ficha: Ficha;
+    pontosVantagemDisponiveis: number;
+    onUpdate: <K extends keyof Ficha>(key: K, value: Ficha[K]) => void;
+    onClose: () => void;
+}
+
+const ClassesPanel: React.FC<ClassesPanelProps> = ({ ficha, pontosVantagemDisponiveis, onUpdate, onClose }) => {
+    const [tempClasse, setTempClasse] = useState<string | null>(ficha.classeSelecionada);
+    const [showSavedMessage, setShowSavedMessage] = useState(false);
+    const [isClosing, setIsClosing] = useState(false);
+
+    const handleClose = () => {
+        setIsClosing(true);
+        setTimeout(() => {
+            onClose();
+        }, 300);
+    };
+
+    useEffect(() => {
+        setTempClasse(ficha.classeSelecionada);
+    }, [ficha.classeSelecionada]);
+
+    const calcularPHRestante = (selectedClasse: string | null) => {
+        let ph = ficha.pontosVantagemTotais;
+
+        ficha.vantagens.forEach(v => ph -= (vantagensData.find(vd => vd.nome === v)?.custo || 0));
+        ficha.desvantagens.forEach(d => ph += (desvantagensData.find(dd => dd.nome === d)?.ganho || 0));
+        if (ficha.racaSelecionada) {
+            ph -= racasData.find(r => r.nome === ficha.racaSelecionada)?.custo || 0;
+        }
+        
+        if (ficha.classeSelecionada) {
+             ph += classesData.find(c => c.nome === ficha.classeSelecionada)?.custo || 0;
+        }
+        
+        if (selectedClasse) {
+            ph -= classesData.find(c => c.nome === selectedClasse)?.custo || 0;
+        }
+
+        return ph;
+    };
+    
+    const phRestante = calcularPHRestante(tempClasse);
+
+    const handleSelectClasse = (nome: string) => {
+        if (ficha.classeSelecionada) {
+            alert("Uma classe já foi selecionada. Para alterar, use a opção 'Excluir...' na ficha.");
+            return;
+        }
+
+        if (tempClasse === nome) {
+            setTempClasse(null);
+        } else if (calcularPHRestante(nome) >= 0) {
+            setTempClasse(nome);
+        } else {
+            alert("Pontos de Vantagem insuficientes para selecionar esta classe!");
+        }
+    };
+    
+    const handleSave = () => {
+        onUpdate('classeSelecionada', tempClasse);
+        setShowSavedMessage(true);
+        setTimeout(() => setShowSavedMessage(false), 2000);
+    };
+    
+    const componentStyle = { backgroundColor: 'var(--component-bg-color)' };
+    const isClasseLocked = !!ficha.classeSelecionada;
+
+    return (
+        <div className={`fixed inset-0 bg-black/80 z-40 flex flex-col p-4 ${isClosing ? 'modal-exit' : 'modal-enter'}`}>
+            <div className="bg-stone-900 rounded-lg p-4 flex-grow flex flex-col border border-stone-700 relative min-h-0">
+                <button onClick={handleClose} className="absolute top-4 right-4 text-3xl font-bold text-yellow-500 hover:text-yellow-400 z-10">&times;</button>
+                <div className="text-center mb-4">
+                    <h2 className="text-3xl font-medieval">Classes</h2>
+                    <p>Pontos Restantes Após Seleção: <span className={`font-bold text-lg ${phRestante < 0 ? 'text-red-500' : 'text-green-400'}`}>{phRestante}</span></p>
+                    <div className="mt-2 flex justify-center items-center gap-4">
+                         <button 
+                            onClick={handleSave} 
+                            className="btn-interactive py-2 px-6 bg-amber-700 hover:bg-amber-600 rounded-md text-white disabled:bg-stone-600 disabled:cursor-not-allowed" 
+                            disabled={isClasseLocked || tempClasse === ficha.classeSelecionada}
+                         >
+                            Salvar
+                        </button>
+                        {showSavedMessage && <span className="text-green-400 text-sm">Salvo!</span>}
+                    </div>
+                </div>
+
+                <div className="flex-grow overflow-y-auto space-y-3 pr-2 min-h-0">
+                    {classesData.map(classe => {
+                        const isSelected = tempClasse === classe.nome;
+                        const isSavedAndLocked = isClasseLocked && ficha.classeSelecionada === classe.nome;
+                        const isDisabled = isClasseLocked && !isSavedAndLocked;
+
+                        let containerClasses = 'p-3 rounded transition-all border-2 ';
+                        if (isSavedAndLocked) {
+                            containerClasses += 'border-amber-700 bg-amber-900/70 cursor-default';
+                        } else if (isDisabled) {
+                            containerClasses += 'border-transparent bg-stone-800 opacity-50 cursor-not-allowed';
+                        } else if (isSelected) {
+                            containerClasses += 'border-amber-500 bg-amber-900/50 cursor-pointer';
+                        } else {
+                            containerClasses += 'border-transparent bg-stone-800 hover:bg-stone-700 cursor-pointer';
+                        }
+                        
+                        return (
+                         <div 
+                            key={classe.nome} 
+                            onClick={() => handleSelectClasse(classe.nome)} 
+                            className={containerClasses}
+                            style={isSavedAndLocked || isSelected ? {} : componentStyle}
+                         >
+                            <h3 className="font-medieval text-lg" style={{ color: 'var(--accent-color)' }}>{classe.nome} ({classe.custo} PV)</h3>
+                            <p className="text-sm mb-2">{classe.descricao}</p>
+                        </div>
+                    )})}
+                </div>
+            </div>
+        </div>
+    );
+};
+
+
 // --- ResourceBars.tsx ---
 interface ResourceBarsProps {
     ficha: Ficha;
@@ -2722,21 +2979,30 @@ const ResourceBars: React.FC<ResourceBarsProps> = ({ ficha, onUpdate, isGmMode, 
 interface SkillsProps {
     ficha: Ficha;
     onUpdate: (updates: Partial<Ficha>) => void;
+    isGmMode: boolean;
 }
 
-const Skills: React.FC<SkillsProps> = ({ ficha, onUpdate }) => {
+const Skills: React.FC<SkillsProps> = ({ ficha, onUpdate, isGmMode }) => {
     
-    const handleSkillChange = (index: number, field: keyof Magia, value: string) => {
+    const classSkills = ficha.magiasHabilidades.filter(s => s.isClassSkill);
+    const regularSkills = ficha.magiasHabilidades.filter(s => !s.isClassSkill);
+
+    const handleSkillChange = (index: number, field: keyof Magia, value: string, isClass: boolean) => {
         const newSkills = [...ficha.magiasHabilidades];
-        const skill = { ...newSkills[index] };
+        // Find the original index in the main array
+        const originalIndex = ficha.magiasHabilidades.findIndex(s => s.nome === (isClass ? classSkills[index].nome : regularSkills[index].nome));
+        
+        if (originalIndex === -1) return;
+
+        const skill = { ...newSkills[originalIndex] };
         
         if (field === 'custo' || field === 'custoVigor') {
-            skill[field] = parseFloat(value) || 0;
+            (skill as any)[field] = parseFloat(value) || 0;
         } else {
-            skill[field] = value;
+            (skill as any)[field] = value;
         }
         
-        newSkills[index] = skill;
+        newSkills[originalIndex] = skill;
         onUpdate({ magiasHabilidades: newSkills });
     };
 
@@ -2746,7 +3012,8 @@ const Skills: React.FC<SkillsProps> = ({ ficha, onUpdate }) => {
     };
     
     const removeSkillSlot = (index: number) => {
-        const newSkills = ficha.magiasHabilidades.filter((_, i) => i !== index);
+        const skillToRemove = regularSkills[index];
+        const newSkills = ficha.magiasHabilidades.filter(s => s.nome !== skillToRemove.nome || s.isClassSkill);
         onUpdate({ magiasHabilidades: newSkills });
     };
 
@@ -2780,68 +3047,88 @@ const Skills: React.FC<SkillsProps> = ({ ficha, onUpdate }) => {
     }
 
     const componentStyle = { backgroundColor: 'var(--component-bg-color)' };
+    
+    const renderSkillList = (skills: Magia[], isClassSkill: boolean) => (
+        <div className="space-y-3">
+            {skills.map((skill, index) => (
+                <div key={`${isClassSkill}-${skill.nome}-${index}`} className="bg-stone-800 p-3 rounded-lg border border-stone-700" style={componentStyle}>
+                    <div className="flex items-center gap-2 mb-2">
+                         <input
+                            type="text"
+                            placeholder="Nome da Habilidade"
+                            value={skill.nome}
+                            onChange={(e) => handleSkillChange(index, 'nome', e.target.value, isClassSkill)}
+                            disabled={isClassSkill && !isGmMode}
+                            className="flex-grow p-2 bg-stone-700 border border-stone-600 rounded-md font-bold disabled:bg-stone-800 disabled:opacity-70"
+                        />
+                        {!isClassSkill && (
+                            <button onClick={() => removeSkillSlot(index)} className="btn-interactive w-8 h-8 rounded-md bg-red-800 hover:bg-red-700 text-white flex-shrink-0">-</button>
+                        )}
+                    </div>
+
+                    <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 text-sm">
+                        <input
+                            type="number"
+                            placeholder="✨ Custo"
+                            title="Custo de Magia"
+                            value={skill.custo}
+                            onChange={(e) => handleSkillChange(index, 'custo', e.target.value, isClassSkill)}
+                            disabled={isClassSkill && !isGmMode}
+                            className="p-2 bg-stone-700 border border-stone-600 rounded-md disabled:bg-stone-800 disabled:opacity-70"
+                        />
+                         <input
+                            type="number"
+                            placeholder="⚡ Custo"
+                            title="Custo de Vigor"
+                            value={skill.custoVigor}
+                            step="0.1"
+                            onChange={(e) => handleSkillChange(index, 'custoVigor', e.target.value, isClassSkill)}
+                            disabled={isClassSkill && !isGmMode}
+                            className="p-2 bg-stone-700 border border-stone-600 rounded-md disabled:bg-stone-800 disabled:opacity-70"
+                        />
+                        <input
+                            type="text"
+                            placeholder="Dano/Efeito"
+                            value={skill.dano}
+                            onChange={(e) => handleSkillChange(index, 'dano', e.target.value, isClassSkill)}
+                            disabled={isClassSkill && !isGmMode}
+                            className="p-2 bg-stone-700 border border-stone-600 rounded-md col-span-2 sm:col-span-1 disabled:bg-stone-800 disabled:opacity-70"
+                        />
+                        <select
+                            value={skill.tipo}
+                            onChange={(e) => handleSkillChange(index, 'tipo', e.target.value, isClassSkill)}
+                            disabled={isClassSkill && !isGmMode}
+                            className="p-2 bg-stone-700 border border-stone-600 rounded-md disabled:bg-stone-800 disabled:opacity-70"
+                            style={{ color: 'var(--text-color)' }}
+                        >
+                            <option value="">Tipo...</option>
+                            <option value="dano">Dano</option>
+                            <option value="cura">Cura</option>
+                            <option value="buff">Buff</option>
+                            <option value="debuff">Debuff</option>
+                            <option value="utilidade">Utilidade</option>
+                        </select>
+                         <button onClick={() => handleCast(skill)} className="btn-interactive p-2 bg-amber-700 rounded-md hover:bg-amber-600 text-xs text-white">Lançar</button>
+                    </div>
+                </div>
+            ))}
+        </div>
+    );
 
     return (
-        <div>
-            <h3 className="font-medieval text-lg mb-2">Magias e Habilidades</h3>
-            <div className="space-y-3 max-h-72 overflow-y-auto pr-2">
-                {ficha.magiasHabilidades.map((skill, index) => (
-                    <div key={index} className="bg-stone-800 p-3 rounded-lg border border-stone-700" style={componentStyle}>
-                        <div className="flex items-center gap-2 mb-2">
-                             <input
-                                type="text"
-                                placeholder="Nome da Habilidade"
-                                value={skill.nome}
-                                onChange={(e) => handleSkillChange(index, 'nome', e.target.value)}
-                                className="flex-grow p-2 bg-stone-700 border border-stone-600 rounded-md font-bold"
-                            />
-                            <button onClick={() => removeSkillSlot(index)} className="btn-interactive w-8 h-8 rounded-md bg-red-800 hover:bg-red-700 text-white flex-shrink-0">-</button>
-                        </div>
-
-                        <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 text-sm">
-                            <input
-                                type="number"
-                                placeholder="✨ Custo"
-                                title="Custo de Magia"
-                                value={skill.custo}
-                                onChange={(e) => handleSkillChange(index, 'custo', e.target.value)}
-                                className="p-2 bg-stone-700 border border-stone-600 rounded-md"
-                            />
-                             <input
-                                type="number"
-                                placeholder="⚡ Custo"
-                                title="Custo de Vigor"
-                                value={skill.custoVigor}
-                                step="0.1"
-                                onChange={(e) => handleSkillChange(index, 'custoVigor', e.target.value)}
-                                className="p-2 bg-stone-700 border border-stone-600 rounded-md"
-                            />
-                            <input
-                                type="text"
-                                placeholder="Dano/Efeito"
-                                value={skill.dano}
-                                onChange={(e) => handleSkillChange(index, 'dano', e.target.value)}
-                                className="p-2 bg-stone-700 border border-stone-600 rounded-md col-span-2 sm:col-span-1"
-                            />
-                            <select
-                                value={skill.tipo}
-                                onChange={(e) => handleSkillChange(index, 'tipo', e.target.value)}
-                                className="p-2 bg-stone-700 border border-stone-600 rounded-md"
-                                style={{ color: 'var(--text-color)' }}
-                            >
-                                <option value="">Tipo...</option>
-                                <option value="dano">Dano</option>
-                                <option value="cura">Cura</option>
-                                <option value="buff">Buff</option>
-                                <option value="debuff">Debuff</option>
-                                <option value="utilidade">Utilidade</option>
-                            </select>
-                             <button onClick={() => handleCast(skill)} className="btn-interactive p-2 bg-amber-700 rounded-md hover:bg-amber-600 text-xs text-white">Lançar</button>
-                        </div>
-                    </div>
-                ))}
+        <div className="space-y-4 max-h-96 overflow-y-auto pr-2">
+            {classSkills.length > 0 && (
+                <div>
+                    <h3 className="font-medieval text-lg mb-2">Habilidades de Classe</h3>
+                    {renderSkillList(classSkills, true)}
+                </div>
+            )}
+            
+            <div>
+                <h3 className="font-medieval text-lg mb-2">Magias e Habilidades</h3>
+                {renderSkillList(regularSkills, false)}
+                <button onClick={addSkillSlot} className="btn-interactive mt-2 w-full py-1 bg-stone-700 hover:bg-stone-600 rounded-md text-sm text-white">Adicionar Habilidade</button>
             </div>
-            <button onClick={addSkillSlot} className="btn-interactive mt-2 w-full py-1 bg-stone-700 hover:bg-stone-600 rounded-md text-sm text-white">Adicionar Habilidade</button>
         </div>
     );
 };
@@ -3243,6 +3530,191 @@ const CharacterImage: React.FC<CharacterImageProps> = ({ image, onUpdate }) => {
     );
 };
 
+// --- ClasseHabilidadesModal.tsx ---
+interface ClasseHabilidadesModalProps {
+    ficha: Ficha;
+    pontosVantagemDisponiveis: number;
+    onUpdate: (updates: Partial<Ficha>) => void;
+    onClose: () => void;
+    isOpeningAfterLevelUp: boolean;
+}
+
+const SoulOrb = () => <div className="soul-orb"></div>;
+
+const ClasseHabilidadesModal: React.FC<ClasseHabilidadesModalProps> = ({
+    ficha,
+    pontosVantagemDisponiveis,
+    onUpdate,
+    onClose,
+    isOpeningAfterLevelUp
+}) => {
+    const selectedClasseData = ficha.classeSelecionada ? classesData.find(c => c.nome === ficha.classeSelecionada) : null;
+    
+    const [tempAdquiridas, setTempAdquiridas] = useState<string[]>([]);
+    const [tempCompradasComPV, setTempCompradasComPV] = useState<string[]>([]);
+
+    if (!selectedClasseData) {
+        return (
+            <Modal title="Habilidades de Classe" onClose={onClose}>
+                <p>Nenhuma classe selecionada.</p>
+            </Modal>
+        );
+    }
+
+    const almasDisponiveis = ficha.almasTotais - ficha.almasGastas;
+    const tempAlmasGastas = tempAdquiridas.filter(h => !tempCompradasComPV.includes(h)).length;
+    const tempPVGastos = tempCompradasComPV.reduce((total, nomeHabilidade) => {
+        const habilidade = selectedClasseData.habilidades.find(h => h.nome === nomeHabilidade);
+        return total + (habilidade?.custoPVSemAlma || 0);
+    }, 0);
+    
+    const almasRestantes = almasDisponiveis - tempAlmasGastas;
+    const pvRestantes = pontosVantagemDisponiveis - tempPVGastos;
+
+    const handleAcquireSkill = (habilidade: ClasseHabilidade) => {
+        if (ficha.habilidadesClasseAdquiridas.includes(habilidade.nome)) return;
+        if (tempAdquiridas.includes(habilidade.nome)) {
+             // Des-selecionar
+            setTempAdquiridas(tempAdquiridas.filter(h => h !== habilidade.nome));
+            setTempCompradasComPV(tempCompradasComPV.filter(h => h !== habilidade.nome));
+            return;
+        }
+
+        // Tenta usar Alma primeiro
+        if (almasRestantes > 0) {
+            setTempAdquiridas([...tempAdquiridas, habilidade.nome]);
+        } else if (pvRestantes >= habilidade.custoPVSemAlma) {
+             setTempAdquiridas([...tempAdquiridas, habilidade.nome]);
+             setTempCompradasComPV([...tempCompradasComPV, habilidade.nome]);
+        } else {
+            alert("Você não tem Almas ou Pontos de Vantagem suficientes!");
+        }
+    };
+
+    const handleSave = () => {
+        const novasHabilidadesAdquiridas = [...ficha.habilidadesClasseAdquiridas, ...tempAdquiridas];
+        const novasHabilidadesCompradasComPV = [...ficha.habilidadesClasseCompradasComPV, ...tempCompradasComPV];
+        const novosAlmasGastas = ficha.almasGastas + tempAlmasGastas;
+
+        // Adiciona as habilidades como magias/habilidades na ficha
+        const novasMagiasHabilidades = [...ficha.magiasHabilidades];
+        tempAdquiridas.forEach(nomeHabilidade => {
+            const habilidade = selectedClasseData.habilidades.find(h => h.nome === nomeHabilidade);
+            if (habilidade && habilidade.tipo !== 'passiva') {
+                novasMagiasHabilidades.push({
+                    nome: habilidade.nome,
+                    custo: habilidade.custoMagia || 0,
+                    custoVigor: habilidade.custoVigor || 0,
+                    dano: habilidade.dano || '',
+                    tipo: habilidade.tipo === 'ataque' ? 'dano' : habilidade.tipo === 'defesa' ? 'buff' : 'utilidade', // Mapeamento simples
+                    isClassSkill: true,
+                });
+            }
+        });
+        
+        onUpdate({
+            habilidadesClasseAdquiridas: novasHabilidadesAdquiridas,
+            habilidadesClasseCompradasComPV: novasHabilidadesCompradasComPV,
+            almasGastas: novosAlmasGastas,
+            magiasHabilidades: novasMagiasHabilidades,
+        });
+        onClose();
+    };
+
+    const componentStyle = { backgroundColor: 'var(--component-bg-color)' };
+    
+    const modalClassName = isOpeningAfterLevelUp ? 'star-shine-animation' : '';
+
+    return (
+        <Modal title={`Habilidades de ${selectedClasseData.nome}`} onClose={onClose} className={modalClassName}>
+            <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-2">
+                 {isOpeningAfterLevelUp && (
+                    <div className="p-3 bg-green-900/50 border border-green-700 rounded-md text-center">
+                        <p className="font-bold text-lg">Parabéns pelo novo nível!</p>
+                        <p>Você ganhou Almas para desbloquear novas habilidades.</p>
+                    </div>
+                )}
+
+                <div className="flex justify-around text-center p-2 rounded-md" style={componentStyle}>
+                    <div>
+                        <div className="text-sm opacity-80">Almas Restantes</div>
+                         <div className="flex justify-center items-center gap-2 h-10 mt-1">
+                            {almasRestantes > 0 ? (
+                                Array.from({ length: almasRestantes }).map((_, i) => <SoulOrb key={i} />)
+                            ) : (
+                                <span className="text-2xl font-bold">0</span>
+                            )}
+                        </div>
+                    </div>
+                     <div>
+                        <div className="text-sm opacity-80">PV Restantes</div>
+                        <div className="text-2xl font-bold">{pvRestantes}</div>
+                    </div>
+                </div>
+
+                <div className="space-y-3">
+                    {selectedClasseData.habilidades.map(habilidade => {
+                        const isAvailable = ficha.nivel >= habilidade.nivel;
+                        const isAcquired = ficha.habilidadesClasseAdquiridas.includes(habilidade.nome);
+                        const isSelected = tempAdquiridas.includes(habilidade.nome);
+                        const isBoughtWithPV = tempCompradasComPV.includes(habilidade.nome);
+
+                        let statusText = '';
+                        let statusColor = '';
+                        if(isAcquired) {
+                            statusText = 'Adquirida';
+                            statusColor = 'text-green-400';
+                        } else if (!isAvailable) {
+                            statusText = `Nível ${habilidade.nivel}`;
+                            statusColor = 'text-stone-500';
+                        }
+
+                        let buttonText = 'Adquirir';
+                        if (isSelected) {
+                            buttonText = isBoughtWithPV ? `Usando ${habilidade.custoPVSemAlma} PV` : 'Usando 1 Alma';
+                        }
+
+                        const canAfford = almasRestantes > 0 || pvRestantes >= habilidade.custoPVSemAlma;
+
+                        return (
+                            <div key={habilidade.nome} className="p-3 rounded-lg border" style={{...componentStyle, borderColor: isSelected ? 'var(--accent-color)' : 'var(--border-color)'}}>
+                                <div className="flex justify-between items-start">
+                                    <div>
+                                        <h4 className="font-bold text-lg">{habilidade.nome}</h4>
+                                        <p className="text-sm opacity-80">{habilidade.descricao}</p>
+                                    </div>
+                                    <span className={`text-xs font-bold whitespace-nowrap ${statusColor}`}>{statusText}</span>
+                                </div>
+                                <div className="text-xs opacity-70 mt-2 flex flex-wrap gap-x-4">
+                                    {habilidade.custoMagia !== undefined && <span>✨ Magia: {habilidade.custoMagia}</span>}
+                                    {habilidade.custoVigor !== undefined && <span>⚡ Vigor: {habilidade.custoVigor}</span>}
+                                    {habilidade.dano && <span>💥 Dano/Efeito: {habilidade.dano}</span>}
+                                </div>
+
+                                {!isAcquired && isAvailable && (
+                                    <div className="mt-3 text-right">
+                                        <button 
+                                            onClick={() => handleAcquireSkill(habilidade)}
+                                            disabled={!canAfford && !isSelected}
+                                            className={`btn-interactive px-4 py-2 text-sm rounded-md disabled:opacity-50 disabled:cursor-not-allowed ${isSelected ? 'bg-amber-800' : 'bg-stone-700 hover:bg-stone-600'} text-white`}
+                                        >
+                                            {buttonText}
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
+                        );
+                    })}
+                </div>
+                 <div className="mt-6 flex justify-end gap-2">
+                    <button onClick={onClose} className="btn-interactive px-4 py-2 bg-stone-600 rounded text-white">Cancelar</button>
+                    <button onClick={handleSave} disabled={tempAdquiridas.length === 0} className="btn-interactive px-4 py-2 bg-amber-700 rounded disabled:bg-stone-500 disabled:cursor-not-allowed text-white">Confirmar Aquisição</button>
+                </div>
+            </div>
+        </Modal>
+    );
+};
+
 
 // ==========================================================================================
 // Conteúdo de: App.tsx
@@ -3277,6 +3749,7 @@ const App: React.FC = () => {
         toggleGmMode,
         updateGmAdjustment,
         levelUpEffect,
+        resetClasseNotification,
     } = useCharacterSheet();
 
     useDynamicStyles(currentFicha);
@@ -3288,6 +3761,8 @@ const App: React.FC = () => {
 
     const [isVantagensPanelOpen, setVantagensPanelOpen] = useState(false);
     const [isRacasPanelOpen, setRacasPanelOpen] = useState(false);
+    const [isClassesPanelOpen, setClassesPanelOpen] = useState(false);
+    const [isClasseHabilidadesModalOpen, setClasseHabilidadesModalOpen] = useState(false);
     const [isNewFichaModalOpen, setNewFichaModalOpen] = useState(false);
     const [isCustomizationOpen, setCustomizationOpen] = useState(false);
     const [isExclusionModalOpen, setExclusionModalOpen] = useState(false);
@@ -3308,6 +3783,12 @@ const App: React.FC = () => {
             updateFicha(currentFichaId, updates);
         }
     }, [currentFicha, currentFichaId, updateFicha]);
+
+    useEffect(() => {
+      if (currentFicha?.showClasseSkillsNotification) {
+          setClasseHabilidadesModalOpen(true);
+      }
+    }, [currentFicha?.showClasseSkillsNotification]);
     
     const handleTabClick = useCallback((newTab: string) => {
         const oldIndex = prevTabIndexRef.current;
@@ -3436,6 +3917,8 @@ const App: React.FC = () => {
     }
 
     const selectedRacaData = currentFicha.racaSelecionada ? racasData.find(r => r.nome === currentFicha.racaSelecionada) : null;
+    const selectedClasseData = currentFicha.classeSelecionada ? classesData.find(c => c.nome === currentFicha.classeSelecionada) : null;
+    const almasDisponiveis = currentFicha.almasTotais - currentFicha.almasGastas;
     
     const appClasses = `${currentFicha.darkMode ? 'dark-mode' : 'light-mode'} ${currentFicha.theme}`;
     const componentStyle = { backgroundColor: 'var(--component-bg-color)' };
@@ -3519,7 +4002,7 @@ const App: React.FC = () => {
                         </Section>
 
                         <Section title="Habilidades">
-                            <Skills ficha={currentFicha} onUpdate={handleBulkUpdate} />
+                            <Skills ficha={currentFicha} onUpdate={handleBulkUpdate} isGmMode={isGmMode} />
                         </Section>
 
                         <Section title="Vantagens e Desvantagens">
@@ -3556,10 +4039,10 @@ const App: React.FC = () => {
                         </Section>
 
                         <Section title="Raça e Classe">
-                            <div className="space-y-4">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
                                     <label className="font-bold" style={{ color: 'var(--accent-color)' }}>Raça</label>
-                                    <div className="p-3 bg-stone-800 rounded-md min-h-[4rem]" style={componentStyle}>
+                                    <div className="p-3 bg-stone-800 rounded-md min-h-[8rem]" style={componentStyle}>
                                         {selectedRacaData ? (
                                             <>
                                                 <h4 className="font-bold text-lg">{selectedRacaData.nome.split(' (')[0]}</h4>
@@ -3573,22 +4056,32 @@ const App: React.FC = () => {
                                     </div>
                                 </div>
                                 <div>
-                                    <label className="font-bold block mb-2" style={{ color: 'var(--accent-color)' }}>Classe</label>
-                                    <input 
-                                        type="text"
-                                        placeholder="Nome da Classe"
-                                        value={currentFicha.classeNome || ''}
-                                        onChange={e => handleUpdate('classeNome', e.target.value)}
-                                        className="w-full p-2 bg-stone-800 border border-stone-600 rounded-md mb-2"
-                                        style={componentStyle}
-                                    />
-                                    <textarea
-                                        placeholder="Descrição da Classe"
-                                        value={currentFicha.classeDescricao || ''}
-                                        onChange={e => handleUpdate('classeDescricao', e.target.value)}
-                                        className="w-full p-2 bg-stone-800 border border-stone-600 rounded-md h-24 resize-none"
-                                        style={componentStyle}
-                                    />
+                                    <div className="flex items-center gap-2 mb-1">
+                                        <label className="font-bold" style={{ color: 'var(--accent-color)' }}>Classe</label>
+                                        {selectedClasseData && (
+                                            <button 
+                                                onClick={() => setClasseHabilidadesModalOpen(true)} 
+                                                className={almasDisponiveis > 0 ? "soul-indicator-animation" : ""} 
+                                                title="Habilidades de Classe (Almas disponíveis!)"
+                                            >
+                                                <span className="text-2xl">🛍️</span>
+                                            </button>
+                                        )}
+                                    </div>
+                                    <div className="p-3 bg-stone-800 rounded-md min-h-[8rem]" style={componentStyle}>
+                                         {selectedClasseData ? (
+                                            <>
+                                                <h4 className="font-bold text-lg">{selectedClasseData.nome}</h4>
+                                                <p className="text-sm opacity-80 mt-1">{selectedClasseData.descricao}</p>
+                                            </>
+                                        ) : <p className="text-sm opacity-70 italic">Nenhuma classe selecionada.</p>}
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-2 mt-2">
+                                        <button onClick={() => setClassesPanelOpen(true)} className="btn-interactive py-2 px-4 bg-amber-800 hover:bg-amber-700 rounded-md text-white">
+                                            Gerenciar
+                                        </button>
+                                        <button onClick={openExclusionModal} className="btn-interactive py-2 px-4 bg-red-900 hover:bg-red-800 rounded-md text-white" disabled={!currentFicha.classeSelecionada}>Excluir...</button>
+                                    </div>
                                 </div>
                             </div>
                         </Section>
@@ -3657,7 +4150,7 @@ const App: React.FC = () => {
                                 </div>
                             )}
                             {activeTab === 'habilidades' && (
-                                <Skills ficha={currentFicha} onUpdate={handleBulkUpdate} />
+                                <Skills ficha={currentFicha} onUpdate={handleBulkUpdate} isGmMode={isGmMode} />
                             )}
                             {activeTab === 'perfil' && (
                                 <div className="space-y-4">
@@ -3681,6 +4174,27 @@ const App: React.FC = () => {
                                          <div className="grid grid-cols-2 gap-2 mt-2">
                                             <button onClick={() => setRacasPanelOpen(true)} className="btn-interactive py-2 px-4 bg-amber-800 hover:bg-amber-700 rounded-md text-white text-sm">Gerenciar</button>
                                             <button onClick={openExclusionModal} className="btn-interactive py-2 px-4 bg-red-900 hover:bg-red-800 rounded-md text-white text-sm" disabled={!currentFicha.racaSelecionada}>Excluir...</button>
+                                         </div>
+                                    </div>
+                                    <div className="p-3 rounded-lg" style={componentStyle}>
+                                        <div className="flex items-center gap-2 mb-1">
+                                            <h3 className="font-bold" style={{ color: 'var(--accent-color)' }}>Classe</h3>
+                                            {selectedClasseData && (
+                                                <button 
+                                                    onClick={() => setClasseHabilidadesModalOpen(true)} 
+                                                    className={almasDisponiveis > 0 ? "soul-indicator-animation" : ""} 
+                                                    title="Habilidades de Classe (Almas disponíveis!)"
+                                                >
+                                                    <span className="text-2xl">🛍️</span>
+                                                </button>
+                                            )}
+                                        </div>
+                                         {selectedClasseData ? <p className="text-sm opacity-80 mt-1">{selectedClasseData.nome}: {selectedClasseData.descricao}</p> : <p className="text-sm opacity-70 italic">Nenhuma.</p>}
+                                         <div className="grid grid-cols-2 gap-2 mt-2">
+                                            <button onClick={() => setClassesPanelOpen(true)} className="btn-interactive py-2 px-4 bg-amber-800 hover:bg-amber-700 rounded-md text-white text-sm">
+                                                Gerenciar
+                                            </button>
+                                            <button onClick={openExclusionModal} className="btn-interactive py-2 px-4 bg-red-900 hover:bg-red-800 rounded-md text-white text-sm" disabled={!currentFicha.classeSelecionada}>Excluir...</button>
                                          </div>
                                     </div>
                                     <div className="grid grid-cols-2 gap-2">
@@ -3741,6 +4255,27 @@ const App: React.FC = () => {
                     onClose={() => setRacasPanelOpen(false)}
                 />
             )}
+            {isClassesPanelOpen && (
+                <ClassesPanel
+                    ficha={currentFicha}
+                    pontosVantagemDisponiveis={getPontosVantagem()}
+                    onUpdate={handleUpdate}
+                    onClose={() => setClassesPanelOpen(false)}
+                />
+            )}
+             {isClasseHabilidadesModalOpen && (
+                <ClasseHabilidadesModal
+                    ficha={currentFicha}
+                    pontosVantagemDisponiveis={getPontosVantagem()}
+                    onUpdate={handleBulkUpdate}
+                    onClose={() => {
+                        setClasseHabilidadesModalOpen(false);
+                        resetClasseNotification();
+                    }}
+                    isOpeningAfterLevelUp={currentFicha.showClasseSkillsNotification}
+                />
+            )}
+
             {isNewFichaModalOpen && (
                  <Modal title="Criar Nova Ficha" onClose={() => setNewFichaModalOpen(false)}>
                     <input
