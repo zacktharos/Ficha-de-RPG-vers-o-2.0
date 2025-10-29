@@ -3559,6 +3559,7 @@ interface ClasseHabilidadesModalProps {
     onUpdate: (updates: Partial<Ficha>) => void;
     onClose: () => void;
     isOpeningAfterLevelUp: boolean;
+    isGmMode: boolean;
 }
 
 const SoulOrb = () => <div className="soul-orb"></div>;
@@ -3568,7 +3569,8 @@ const ClasseHabilidadesModal: React.FC<ClasseHabilidadesModalProps> = ({
     pontosVantagemDisponiveis,
     onUpdate,
     onClose,
-    isOpeningAfterLevelUp
+    isOpeningAfterLevelUp,
+    isGmMode
 }) => {
     const selectedClasseData = ficha.classeSelecionada ? classesData.find(c => c.nome === ficha.classeSelecionada) : null;
     
@@ -3668,13 +3670,31 @@ const ClasseHabilidadesModal: React.FC<ClasseHabilidadesModalProps> = ({
                 <div className="flex justify-around text-center p-2 rounded-md" style={componentStyle}>
                     <div>
                         <div className="text-sm opacity-80">Almas Restantes</div>
-                         <div className="flex justify-center items-center gap-2 h-10 mt-1">
-                            {almasRestantes > 0 ? (
-                                Array.from({ length: almasRestantes }).map((_, i) => <SoulOrb key={i} />)
-                            ) : (
-                                <span className="text-2xl font-bold">0</span>
-                            )}
-                        </div>
+                        {isGmMode ? (
+                            <div className="flex items-center justify-center gap-2 mt-1">
+                                <button
+                                    onClick={() => onUpdate({ almasTotais: Math.max(0, ficha.almasTotais - 1) })}
+                                    className="btn-interactive w-8 h-8 rounded-md bg-stone-700 hover:bg-stone-600 text-white"
+                                >
+                                    -
+                                </button>
+                                <span className="w-10 text-center font-bold text-2xl">{almasRestantes}</span>
+                                <button
+                                    onClick={() => onUpdate({ almasTotais: ficha.almasTotais + 1 })}
+                                    className="btn-interactive w-8 h-8 rounded-md bg-stone-700 hover:bg-stone-600 text-white"
+                                >
+                                    +
+                                </button>
+                            </div>
+                        ) : (
+                            <div className="flex justify-center items-center gap-2 h-10 mt-1">
+                                {almasRestantes > 0 ? (
+                                    Array.from({ length: almasRestantes }).map((_, i) => <SoulOrb key={i} />)
+                                ) : (
+                                    <span className="text-2xl font-bold">0</span>
+                                )}
+                            </div>
+                        )}
                     </div>
                      <div>
                         <div className="text-sm opacity-80">PV Restantes</div>
@@ -4309,6 +4329,7 @@ const App: React.FC = () => {
                         resetClasseNotification();
                     }}
                     isOpeningAfterLevelUp={currentFicha.showClasseSkillsNotification}
+                    isGmMode={isGmMode}
                 />
             )}
 
