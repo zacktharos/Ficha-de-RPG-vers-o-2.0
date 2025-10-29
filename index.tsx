@@ -3081,7 +3081,7 @@ const Skills: React.FC<SkillsProps> = ({ ficha, onUpdate, isGmMode }) => {
                             value={skill.nome}
                             onChange={(e) => handleSkillChange(index, 'nome', e.target.value, isClassSkill)}
                             disabled={isClassSkill && !isGmMode}
-                            className="flex-grow p-2 bg-stone-700 border border-stone-600 rounded-md font-bold disabled:bg-stone-800 disabled:opacity-70"
+                            className="flex-grow p-2 bg-white text-black border border-stone-400 rounded-md font-bold disabled:bg-stone-200 disabled:opacity-70"
                         />
                         {!isClassSkill && (
                             <button onClick={() => removeSkillSlot(index)} className="btn-interactive w-8 h-8 rounded-md bg-red-800 hover:bg-red-700 text-white flex-shrink-0">-</button>
@@ -3096,7 +3096,7 @@ const Skills: React.FC<SkillsProps> = ({ ficha, onUpdate, isGmMode }) => {
                             value={skill.custo}
                             onChange={(e) => handleSkillChange(index, 'custo', e.target.value, isClassSkill)}
                             disabled={isClassSkill && !isGmMode}
-                            className="p-2 bg-stone-700 border border-stone-600 rounded-md disabled:bg-stone-800 disabled:opacity-70"
+                            className="p-2 bg-white text-black border border-stone-400 rounded-md disabled:bg-stone-200 disabled:opacity-70"
                         />
                          <input
                             type="number"
@@ -3106,7 +3106,7 @@ const Skills: React.FC<SkillsProps> = ({ ficha, onUpdate, isGmMode }) => {
                             step="0.1"
                             onChange={(e) => handleSkillChange(index, 'custoVigor', e.target.value, isClassSkill)}
                             disabled={isClassSkill && !isGmMode}
-                            className="p-2 bg-stone-700 border border-stone-600 rounded-md disabled:bg-stone-800 disabled:opacity-70"
+                            className="p-2 bg-white text-black border border-stone-400 rounded-md disabled:bg-stone-200 disabled:opacity-70"
                         />
                         <input
                             type="text"
@@ -3114,14 +3114,13 @@ const Skills: React.FC<SkillsProps> = ({ ficha, onUpdate, isGmMode }) => {
                             value={skill.dano}
                             onChange={(e) => handleSkillChange(index, 'dano', e.target.value, isClassSkill)}
                             disabled={isClassSkill && !isGmMode}
-                            className="p-2 bg-stone-700 border border-stone-600 rounded-md col-span-2 sm:col-span-1 disabled:bg-stone-800 disabled:opacity-70"
+                            className="p-2 bg-white text-black border border-stone-400 rounded-md col-span-2 sm:col-span-1 disabled:bg-stone-200 disabled:opacity-70"
                         />
                         <select
                             value={skill.tipo}
                             onChange={(e) => handleSkillChange(index, 'tipo', e.target.value, isClassSkill)}
                             disabled={isClassSkill && !isGmMode}
-                            className="p-2 bg-stone-700 border border-stone-600 rounded-md disabled:bg-stone-800 disabled:opacity-70"
-                            style={{ color: 'var(--text-color)' }}
+                            className="p-2 bg-white text-black border border-stone-400 rounded-md disabled:bg-stone-200 disabled:opacity-70"
                         >
                             <option value="">Tipo...</option>
                             <option value="dano">Dano</option>
