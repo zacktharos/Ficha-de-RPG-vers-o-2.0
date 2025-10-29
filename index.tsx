@@ -1897,7 +1897,7 @@ const DiceRoller: React.FC<DiceRollerProps> = ({ onRoll, selectedAttribute, setS
     }`;
 
     return (
-        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-40 bg-stone-900/90 backdrop-blur-md p-3 rounded-lg shadow-2xl border border-stone-700 w-64 flex flex-col gap-3" style={{ backgroundColor: ficha.darkMode ? 'rgba(20,20,20,0.9)' : ''}}>
+        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-40 bg-stone-900/90 backdrop-blur-md p-3 rounded-lg shadow-2xl border border-stone-700 w-64 flex flex-col gap-3 text-white" style={{ backgroundColor: ficha.darkMode ? 'rgba(20,20,20,0.9)' : ''}}>
             <div className="flex justify-between items-center">
                 <h3 className="font-medieval">Rolagem</h3>
                 <button onClick={() => setIsPanelOpen(false)} className="text-2xl opacity-70 hover:opacity-100">&times;</button>
