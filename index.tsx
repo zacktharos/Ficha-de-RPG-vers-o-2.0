@@ -325,9 +325,25 @@ const classesData: Classe[] = [
         custo: 6,
         descricao: "Guerreiros sagrados que canalizam poder divino para proteger os inocentes e punir o mal, combinando habilidades marciais com magias de cura e proteção.",
         habilidades: [
-            { nome: "Golpe Divino", nivel: 1, tipo: 'ataque', descricao: "Infunde sua arma com energia sagrada.", dano: "Ataque +3 de dano mágico.", custoMagia: 2, custoVigor: 1, custoPVSemAlma: 3 },
-            { nome: "Bênção da Cura", nivel: 1, tipo: 'defesa', descricao: "Invoca uma luz curativa.", dano: "Cura 15 de Vida.", custoMagia: 3, custoVigor: 0, custoPVSemAlma: 4 },
-            { nome: "Aura de Proteção", nivel: 1, tipo: 'passiva', descricao: "Uma aura divina te protege de danos mágicos. Bônus: RDM +2.", efeito: { atributo: 'rdm', valor: 2 }, custoPVSemAlma: 5 },
+            // Nível 1
+            { nome: "Corte Divino", nivel: 1, tipo: 'ataque', descricao: "Você imbuí sua espada com magia de luz e desfere dano mágico e dano físico. Cooldown: 2 turnos. 10% a mais de dano a criaturas das trevas.", dano: "ataque + 10 físico, + 10 mágico + 2d20", custoMagia: 20, custoVigor: 2, custoPVSemAlma: 3 },
+            { nome: "Fé", nivel: 1, tipo: 'defesa', descricao: "Você para para orar e pedir ajuda divina. Anula 30% do dano de magia negra ou de origem das trevas. Duração: 2 turnos. Cooldown: 3 turnos. Casting: 1 turno.", dano: "Anula 30% de dano sombrio", custoMagia: 20, custoVigor: 0, custoPVSemAlma: 4 },
+            { nome: "Benção dos deuses", nivel: 1, tipo: 'passiva', descricao: "Você é abençoado e pode detectar qualquer criatura maligna em um raio de 20 metros. Não detecta criaturas 3 níveis acima do seu.", custoPVSemAlma: 5 },
+            // Nível 5
+            { nome: "Fé do tamanho de um grão de mostarda", nivel: 5, tipo: 'ataque', descricao: "Um milagre da natureza atinge seus oponentes. Escolha um efeito: paralisia (1 turno), redução de atributos (2 turnos) ou confusão (1 turno). Cooldown: 3 turnos. Casting: 1 turno. Punição divina se não for usado contra inimigos.", dano: "30 + 2d20 (físico ou mágico) + 5 acerto", custoMagia: 40, custoVigor: 0, custoPVSemAlma: 5 },
+            { nome: "Nada para um homem de Deus", nivel: 5, tipo: 'defesa', descricao: "Recebe uma cura divina contínua, curando 1d6 de vida por turno. Duração: 1d6 turnos. Cooldown: 4 turnos. Efeito Negativo: Criaturas malignas focam em você.", dano: "Cura 1d6/turno", custoMagia: 40, custoVigor: 0, custoPVSemAlma: 6 },
+            { nome: "Ressuscitar os mortos", nivel: 5, tipo: 'passiva', descricao: "Você ora para sua divindade ressuscitar um aliado. Usável 1x por sessão. Risco de falha e corrupção do aliado.", custoPVSemAlma: 7 },
+            // Nível 10
+            { nome: "Perfuração precisa", nivel: 10, tipo: 'ataque', descricao: "Um dash para frente com a espada para um golpe perfurante. Alcança até 20 metros. Cooldown: 4 turnos.", dano: "50 + ataque físico + 1d20 + 5 acerto + sangramento (1d6 por 1d12 turnos)", custoMagia: 50, custoVigor: 7, custoPVSemAlma: 7 },
+            { nome: "Oração pelos aflitos", nivel: 10, tipo: 'defesa', descricao: "Você ora para que sua divindade cure até 3 aliados aleatórios no campo de batalha. Casting: 1 turno. Cooldown: 4 turnos.", dano: "Cura 30% da vida total", custoMagia: 55, custoVigor: 0, custoPVSemAlma: 8 },
+            { nome: "Livramento", nivel: 10, tipo: 'passiva', descricao: "Uma vez por sessão, se algo fatal ocorrer com você ou um aliado, jogue 1d20. Se for acima de 10, sua divindade concede um livramento.", custoPVSemAlma: 9 },
+            // Nível 15
+            { nome: "Armadura de luz", nivel: 15, tipo: 'defesa', descricao: "Sua armadura e espada são revestidas em luz, ofuscando todos. Duração: 1d6 (resultado 1-3 = 1-3 turnos). Cooldown: 6 turnos. Casting: 1 turno. Efeito Negativo: -3 em acerto e esquiva por 2 turnos após o uso.", dano: "+30 Atq Mágico, +40 RDM, +20 RDF. Ofusca (-2 acerto/esquiva)", custoMagia: 80, custoVigor: 3, custoPVSemAlma: 9 },
+            { nome: "Ainda que eu ande pelo vale da sombra da morte...", nivel: 15, tipo: 'defesa', descricao: "Inimigos de origem maligna (mesmo nível ou inferior) não podem infringir dano a você ou até 3 aliados escolhidos. Duração: 2 turnos. Cooldown: 4 turnos. Casting: 1 turno.", dano: "Imunidade a dano maligno", custoMagia: 60, custoVigor: 0, custoPVSemAlma: 10 },
+            { nome: "Profecia", nivel: 15, tipo: 'passiva', descricao: "Você pode ter uma visão de um acontecimento futuro específico para tentar evitá-lo. Usável 1x por sessão.", custoPVSemAlma: 11 },
+            // Nível 20
+            { nome: "Asas", nivel: 20, tipo: 'defesa', descricao: "Cria asas de luz que lhe permitem voar, ficando inalcançável a danos de curto alcance. Duração: 3 turnos. Cooldown: 5 turnos.", dano: "+12 Agilidade, +9 Acerto", custoMagia: 120, custoVigor: 0, custoPVSemAlma: 11 },
+            { nome: "Pura luz", nivel: 20, tipo: 'defesa', descricao: "Você se torna luz pura, ficando intangível. Pode manter a forma por até 3 turnos para fugir ou evitar ataques. Pode curar aliados nesta forma.", dano: "+18 Agilidade, Intangível", custoPVSemAlma: 12 },
         ]
     },
 ];
